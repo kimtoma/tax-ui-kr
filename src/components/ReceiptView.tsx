@@ -1,0 +1,144 @@
+import type { TaxReturn } from "../lib/schema";
+import { formatPercent } from "../lib/format";
+import { Row, RateRow } from "./Row";
+import { Separator, DoubleSeparator, SectionHeader } from "./Section";
+
+interface Props {
+  data: TaxReturn;
+}
+
+export function ReceiptView({ data }: Props) {
+  const totalTax = data.federal.tax + data.states.reduce((sum, s) => sum + s.tax, 0);
+  const grossMonthly = Math.round(data.income.total / 12);
+  const netMonthly = Math.round((data.income.total - totalTax) / 12);
+  const dailyTakeHome = Math.round(netMonthly / 30);
+
+  return (
+    <div className="max-w-md mx-auto px-6 py-12 font-mono text-sm">
+      <header className="mb-2">
+        <h1 className="text-lg font-bold tracking-tight">{data.year} TAX RETURN</h1>
+        <p className="text-[var(--color-muted)] text-xs">{data.name}</p>
+      </header>
+
+      <SectionHeader>INCOME</SectionHeader>
+      <Separator />
+      {data.income.items.map((item, i) => (
+        <Row key={i} label={item.label} amount={item.amount} />
+      ))}
+      <Separator />
+      <Row label="Total income" amount={data.income.total} isTotal />
+
+      <SectionHeader>FEDERAL</SectionHeader>
+      <Separator />
+      <Row label="Adjusted gross income" amount={data.federal.agi} />
+      {data.federal.deductions.map((item, i) => (
+        <Row key={i} label={item.label} amount={item.amount} isMuted />
+      ))}
+      <Separator />
+      <Row label="Taxable income" amount={data.federal.taxableIncome} />
+      <Row label="Tax" amount={data.federal.tax} />
+      {data.federal.credits.map((item, i) => (
+        <Row key={i} label={item.label} amount={item.amount} isMuted />
+      ))}
+      {data.federal.payments.map((item, i) => (
+        <Row key={i} label={item.label} amount={item.amount} isMuted />
+      ))}
+      <Separator />
+      <Row
+        label={data.federal.refundOrOwed >= 0 ? "Refund" : "Owed"}
+        amount={data.federal.refundOrOwed}
+        isTotal
+        showSign
+      />
+
+      {data.states.map((state, i) => (
+        <section key={i}>
+          <SectionHeader>{state.name.toUpperCase()}</SectionHeader>
+          <Separator />
+          <Row label="Adjusted gross income" amount={state.agi} />
+          {state.deductions.map((item, j) => (
+            <Row key={j} label={item.label} amount={item.amount} isMuted />
+          ))}
+          <Separator />
+          <Row label="Taxable income" amount={state.taxableIncome} />
+          <Row label="Tax" amount={state.tax} />
+          {state.adjustments.map((item, j) => (
+            <Row key={j} label={item.label} amount={item.amount} />
+          ))}
+          {state.payments.map((item, j) => (
+            <Row key={j} label={item.label} amount={item.amount} isMuted />
+          ))}
+          <Separator />
+          <Row
+            label={state.refundOrOwed >= 0 ? "Refund" : "Owed"}
+            amount={state.refundOrOwed}
+            isTotal
+            showSign
+          />
+        </section>
+      ))}
+
+      <SectionHeader>NET POSITION</SectionHeader>
+      <Separator />
+      <Row
+        label={`Federal ${data.summary.federalAmount >= 0 ? "refund" : "owed"}`}
+        amount={data.summary.federalAmount}
+        showSign
+      />
+      {data.summary.stateAmounts.map((item, i) => (
+        <Row
+          key={i}
+          label={`${item.state} ${item.amount >= 0 ? "refund" : "owed"}`}
+          amount={item.amount}
+          showSign
+        />
+      ))}
+      <DoubleSeparator />
+      <Row label="Net" amount={data.summary.netPosition} isTotal showSign />
+
+      {data.rates && (
+        <>
+          <SectionHeader>TAX RATES</SectionHeader>
+          <Separator />
+          <div className="flex justify-between py-0.5 text-[var(--color-muted)] text-xs">
+            <span className="w-32" />
+            <span className="w-20 text-right">Marginal</span>
+            <span className="w-20 text-right">Effective</span>
+          </div>
+          <RateRow
+            label="Federal"
+            marginal={formatPercent(data.rates.federal.marginal)}
+            effective={formatPercent(data.rates.federal.effective)}
+          />
+          {data.rates.state && (
+            <RateRow
+              label={data.states[0]?.name || "State"}
+              marginal={formatPercent(data.rates.state.marginal)}
+              effective={formatPercent(data.rates.state.effective)}
+            />
+          )}
+          {data.rates.combined && (
+            <>
+              <Separator />
+              <RateRow
+                label="Combined"
+                marginal={formatPercent(data.rates.combined.marginal)}
+                effective={formatPercent(data.rates.combined.effective)}
+              />
+            </>
+          )}
+        </>
+      )}
+
+      <SectionHeader>MONTHLY BREAKDOWN</SectionHeader>
+      <Separator />
+      <Row label="Gross monthly" amount={grossMonthly} />
+      <Row label="Net monthly (after tax)" amount={netMonthly} />
+      <Row label="Daily take-home" amount={dailyTakeHome} />
+
+      <footer className="mt-12 pt-4 border-t border-[var(--color-border)] text-[var(--color-muted)] text-xs text-center">
+        Tax Year {data.year} · Filed {data.year + 1}
+      </footer>
+    </div>
+  );
+}

@@ -1,0 +1,67 @@
+import { z } from "zod";
+
+const LabeledAmount = z.object({
+  label: z.string(),
+  amount: z.number(),
+});
+
+const Dependent = z.object({
+  name: z.string(),
+  relationship: z.string(),
+});
+
+const StateReturn = z.object({
+  name: z.string(),
+  agi: z.number(),
+  deductions: z.array(LabeledAmount),
+  taxableIncome: z.number(),
+  tax: z.number(),
+  adjustments: z.array(LabeledAmount),
+  payments: z.array(LabeledAmount),
+  refundOrOwed: z.number(),
+});
+
+const TaxRates = z.object({
+  federal: z.object({ marginal: z.number(), effective: z.number() }),
+  state: z.object({ marginal: z.number(), effective: z.number() }).optional(),
+  combined: z.object({ marginal: z.number(), effective: z.number() }).optional(),
+});
+
+export const TaxReturnSchema = z.object({
+  year: z.number(),
+  name: z.string(),
+  filingStatus: z.enum([
+    "single",
+    "married_filing_jointly",
+    "married_filing_separately",
+    "head_of_household",
+    "qualifying_surviving_spouse",
+  ]),
+  dependents: z.array(Dependent),
+  income: z.object({
+    items: z.array(LabeledAmount),
+    total: z.number(),
+  }),
+  federal: z.object({
+    agi: z.number(),
+    deductions: z.array(LabeledAmount),
+    taxableIncome: z.number(),
+    tax: z.number(),
+    credits: z.array(LabeledAmount),
+    payments: z.array(LabeledAmount),
+    refundOrOwed: z.number(),
+  }),
+  states: z.array(StateReturn),
+  summary: z.object({
+    federalAmount: z.number(),
+    stateAmounts: z.array(z.object({ state: z.string(), amount: z.number() })),
+    netPosition: z.number(),
+  }),
+  rates: TaxRates.optional(),
+});
+
+export type TaxReturn = z.infer<typeof TaxReturnSchema>;
+export type LabeledAmount = z.infer<typeof LabeledAmount>;
+export type StateReturn = z.infer<typeof StateReturn>;
+export type TaxRates = z.infer<typeof TaxRates>;
+export type FilingStatus = TaxReturn["filingStatus"];
