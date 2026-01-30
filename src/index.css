@@ -27,4 +27,20 @@
     @apply bg-[var(--color-bg)] text-[var(--color-text)] m-0 p-0 min-h-screen;
     transition: background-color 0.2s, color 0.2s;
   }
+
+  .resizer {
+    position: absolute;
+    right: 0;
+    top: 0;
+    height: 100%;
+    width: 4px;
+    cursor: col-resize;
+    user-select: none;
+    touch-action: none;
+  }
+
+  .resizer:hover,
+  .resizer.isResizing {
+    background: var(--color-muted);
+  }
 }
