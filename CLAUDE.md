@@ -24,5 +24,5 @@ Tax return PDF parser using Claude API and Bun.
 ## Verification
 
 After changes, run:
-- `bun run build` — Verify build succeeds
+- `bunx tsc --noEmit` — Type check only (skip build)
 - `bun test` — Run tests (if any)
