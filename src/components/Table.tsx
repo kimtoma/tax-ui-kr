@@ -67,7 +67,9 @@ export function Table<TData>({ data, columns, storageKey }: TableProps<TData>) {
               const meta = header.column.columnDef.meta as ColumnMeta | undefined;
               const alignClass = meta?.align === "right" ? "text-right" : "text-left";
               const borderClass = meta?.borderLeft ? "border-l border-[var(--color-border)]" : "";
-              const stickyClass = meta?.sticky ? "sticky left-0 z-30" : "";
+              const stickyClass = meta?.sticky
+                ? "sticky left-0 z-30 border-r border-[var(--color-border)] shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]"
+                : "";
 
               return (
                 <th
@@ -103,12 +105,15 @@ export function Table<TData>({ data, columns, storageKey }: TableProps<TData>) {
             {row.getVisibleCells().map((cell) => {
               const meta = cell.column.columnDef.meta as ColumnMeta | undefined;
               const borderClass = meta?.borderLeft ? "border-l border-[var(--color-border)]" : "";
-              const stickyClass = meta?.sticky ? "sticky left-0 z-10 bg-[var(--color-bg)]" : "";
+              const stickyClass = meta?.sticky
+                ? "sticky left-0 z-10 bg-[var(--color-bg)] border-r border-[var(--color-border)] shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]"
+                : "";
+              const truncateClass = meta?.sticky ? "truncate max-w-[160px]" : "";
 
               return (
                 <td
                   key={cell.id}
-                  className={`py-1 px-2 ${borderClass} ${stickyClass}`}
+                  className={`py-1 px-2 ${borderClass} ${stickyClass} ${truncateClass}`}
                   style={{
                     width: cell.column.getSize(),
                   }}

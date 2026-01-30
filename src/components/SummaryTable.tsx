@@ -276,7 +276,8 @@ export function SummaryTable({ returns }: Props) {
         meta: {
           sticky: true,
         } satisfies ColumnMeta,
-        size: 200,
+        size: 160,
+        maxSize: 160,
       }),
     ];
 
