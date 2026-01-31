@@ -56,37 +56,26 @@ export function Table<TData>({ data, columns, storageKey }: TableProps<TData>) {
   });
 
   return (
-    <div className="bg-[var(--color-bg-elevated)] rounded-2xl shadow-[var(--shadow-card)] border border-[var(--color-border-subtle)] overflow-hidden">
+    <div className="border border-[var(--color-border)] overflow-hidden">
       <table className="w-full border-collapse" style={{ minWidth: "max-content" }}>
         <thead className="sticky top-0 z-20">
           {table.getHeaderGroups().map((headerGroup) => (
-            <tr
-              key={headerGroup.id}
-              className="border-b border-[var(--color-border)]"
-            >
+            <tr key={headerGroup.id}>
               {headerGroup.headers.map((header) => {
                 const meta = header.column.columnDef.meta as ColumnMeta | undefined;
                 const alignClass = meta?.align === "right" ? "text-right" : "text-left";
-                const borderClass = meta?.borderLeft ? "border-l border-[var(--color-border-subtle)]" : "";
-                const stickyClass = meta?.sticky
-                  ? "sticky left-0 z-30"
-                  : "";
+                const stickyClass = meta?.sticky ? "sticky left-0 z-30" : "";
 
                 return (
                   <th
                     key={header.id}
                     colSpan={header.colSpan}
-                    className={`${alignClass} ${borderClass} ${stickyClass} py-3 px-4 font-semibold text-xs uppercase tracking-wide text-[var(--color-text-secondary)] relative bg-[var(--color-bg-subtle)]`}
-                    style={{
-                      width: header.getSize(),
-                    }}
+                    className={`${alignClass} ${stickyClass} py-2 px-4 text-xs text-[var(--color-text-muted)] font-normal relative bg-[var(--color-bg)] border-b border-[var(--color-border)]`}
+                    style={{ width: header.getSize() }}
                   >
                     {header.isPlaceholder
-                    ? null
-                    : flexRender(
-                        header.column.columnDef.header,
-                        header.getContext()
-                      )}
+                      ? null
+                      : flexRender(header.column.columnDef.header, header.getContext())}
                     {header.column.getCanResize() && (
                       <div
                         onMouseDown={header.getResizeHandler()}
@@ -101,33 +90,21 @@ export function Table<TData>({ data, columns, storageKey }: TableProps<TData>) {
           ))}
         </thead>
         <tbody>
-          {table.getRowModel().rows.map((row, i) => (
+          {table.getRowModel().rows.map((row) => (
             <tr
               key={row.id}
-              className={`group transition-colors duration-150 ${
-                i % 2 === 0 ? "bg-[var(--color-bg-elevated)]" : "bg-[var(--color-bg)]"
-              } hover:bg-[var(--color-accent-soft)]`}
+              className="hover:bg-[var(--color-row-hover)]"
             >
               {row.getVisibleCells().map((cell) => {
                 const meta = cell.column.columnDef.meta as ColumnMeta | undefined;
-                const borderClass = meta?.borderLeft ? "border-l border-[var(--color-border-subtle)]" : "";
-                const stickyClass = meta?.sticky
-                  ? "sticky left-0 z-10"
-                  : "";
+                const stickyClass = meta?.sticky ? "sticky left-0 z-10 bg-[var(--color-bg)]" : "";
                 const truncateClass = meta?.sticky ? "truncate max-w-[160px]" : "";
-                const bgClass = meta?.sticky
-                  ? i % 2 === 0
-                    ? "bg-[var(--color-bg-elevated)] group-hover:bg-[var(--color-accent-soft)]"
-                    : "bg-[var(--color-bg)] group-hover:bg-[var(--color-accent-soft)]"
-                  : "";
 
                 return (
                   <td
                     key={cell.id}
-                    className={`py-3 px-4 text-sm ${borderClass} ${stickyClass} ${truncateClass} ${bgClass} transition-colors duration-150`}
-                    style={{
-                      width: cell.column.getSize(),
-                    }}
+                    className={`py-2 px-4 text-sm ${stickyClass} ${truncateClass}`}
+                    style={{ width: cell.column.getSize() }}
                   >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>

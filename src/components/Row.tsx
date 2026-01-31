@@ -11,12 +11,12 @@ interface RowProps {
 export function Row({ label, amount, showSign, isTotal, isMuted }: RowProps) {
   return (
     <div
-      className={`flex justify-between items-center py-2 px-3 -mx-3 rounded-lg transition-colors hover:bg-[var(--color-bg-subtle)] ${
-        isTotal ? "font-semibold text-[var(--color-text)]" : ""
-      } ${isMuted ? "text-[var(--color-text-muted)]" : "text-[var(--color-text-secondary)]"}`}
+      className={`flex justify-between items-center py-1.5 text-sm ${
+        isTotal ? "font-medium" : ""
+      } ${isMuted ? "text-[var(--color-text-muted)]" : ""}`}
     >
-      <span className="text-sm">{label}</span>
-      <span className="tabular-nums font-mono text-sm">{formatCurrency(amount, showSign)}</span>
+      <span>{label}</span>
+      <span className="tabular-nums">{formatCurrency(amount, showSign)}</span>
     </div>
   );
 }
@@ -29,10 +29,10 @@ interface RateRowProps {
 
 export function RateRow({ label, marginal, effective }: RateRowProps) {
   return (
-    <div className="flex justify-between items-center py-2 px-3 -mx-3 rounded-lg transition-colors hover:bg-[var(--color-bg-subtle)] text-[var(--color-text-secondary)]">
-      <span className="text-sm flex-1">{label}</span>
-      <span className="w-20 text-right tabular-nums font-mono text-sm">{marginal}</span>
-      <span className="w-20 text-right tabular-nums font-mono text-sm">{effective}</span>
+    <div className="flex justify-between items-center py-1.5 text-sm">
+      <span className="flex-1">{label}</span>
+      <span className="w-20 text-right tabular-nums">{marginal}</span>
+      <span className="w-20 text-right tabular-nums">{effective}</span>
     </div>
   );
 }

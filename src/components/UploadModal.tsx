@@ -64,7 +64,6 @@ export function UploadModal({ isOpen, onClose, onUpload, onSaveApiKey, hasStored
   }
 
   async function handleSubmit() {
-    // API key only mode
     if (configureKeyOnly) {
       if (!apiKey.trim()) {
         setError("Please enter your API key");
@@ -118,33 +117,31 @@ export function UploadModal({ isOpen, onClose, onUpload, onSaveApiKey, hasStored
 
   return (
     <div
-      className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in"
+      className="fixed inset-0 bg-black/20 flex items-center justify-center p-4 z-50 animate-fade-in"
       onClick={handleBackdropClick}
     >
-      <div className="bg-[var(--color-bg-elevated)] rounded-2xl shadow-[var(--shadow-lg)] border border-[var(--color-border-subtle)] max-w-md w-full p-6 animate-slide-up">
+      <div className="bg-[var(--color-bg)] border border-[var(--color-border)] max-w-md w-full p-6">
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-lg font-semibold text-[var(--color-text)]">
+          <h2 className="text-sm font-medium">
             {configureKeyOnly ? "API Key" : pendingFiles.length > 0 ? "Enter API Key" : "Upload Tax Return"}
           </h2>
           <button
             onClick={onClose}
             disabled={isLoading}
-            className="w-8 h-8 flex items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-bg-muted)] rounded-lg transition-all disabled:opacity-50"
+            className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] disabled:opacity-50"
           >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M4 4l8 8M12 4l-8 8" strokeLinecap="round" />
-            </svg>
+            ×
           </button>
         </div>
 
         {/* Pending files indicator */}
         {pendingFiles.length > 0 && (
-          <div className="mb-6 p-4 bg-[var(--color-bg-subtle)] rounded-xl border border-[var(--color-border-subtle)]">
-            <p className="text-sm font-medium text-[var(--color-text)]">
+          <div className="mb-4 text-sm">
+            <div className="text-[var(--color-text-muted)]">
               {pendingFiles.length} file{pendingFiles.length > 1 ? "s" : ""} selected
-            </p>
-            <div className="text-xs text-[var(--color-text-muted)] mt-2 max-h-20 overflow-y-auto space-y-1">
+            </div>
+            <div className="text-xs text-[var(--color-text-muted)] mt-1">
               {pendingFiles.map((f, i) => (
                 <div key={i} className="truncate">{f.name}</div>
               ))}
@@ -154,8 +151,8 @@ export function UploadModal({ isOpen, onClose, onUpload, onSaveApiKey, hasStored
 
         {/* API Key input */}
         {(!hasStoredKey || configureKeyOnly) && (
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-2">
+          <div className="mb-4">
+            <label className="block text-xs text-[var(--color-text-muted)] mb-1">
               Anthropic API Key
             </label>
             <input
@@ -164,10 +161,10 @@ export function UploadModal({ isOpen, onClose, onUpload, onSaveApiKey, hasStored
               onChange={(e) => setApiKey(e.target.value)}
               placeholder="sk-ant-..."
               disabled={isLoading}
-              className="w-full px-4 py-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-text)] text-sm placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-transparent disabled:opacity-50 transition-all"
+              className="w-full px-3 py-2 border border-[var(--color-border)] bg-[var(--color-bg)] text-sm placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-text-muted)] disabled:opacity-50"
             />
-            <p className="text-xs text-[var(--color-text-muted)] mt-2">
-              {configureKeyOnly && hasStoredKey ? "Update your API key. " : ""}Saved locally to .env file.
+            <p className="text-xs text-[var(--color-text-muted)] mt-1">
+              Saved locally to .env file
             </p>
           </div>
         )}
@@ -180,10 +177,10 @@ export function UploadModal({ isOpen, onClose, onUpload, onSaveApiKey, hasStored
             onDrop={handleDrop}
             onClick={() => !isLoading && fileInputRef.current?.click()}
             className={[
-              "border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all duration-200",
+              "border border-dashed p-6 text-center cursor-pointer text-sm",
               isDragging
-                ? "border-[var(--color-accent)] bg-[var(--color-accent-soft)]"
-                : "border-[var(--color-border)] hover:border-[var(--color-accent)] hover:bg-[var(--color-accent-soft)]",
+                ? "border-[var(--color-text-muted)] bg-[var(--color-bg-muted)]"
+                : "border-[var(--color-border)] hover:border-[var(--color-text-muted)]",
               isLoading ? "opacity-50 cursor-not-allowed" : "",
             ].join(" ")}
           >
@@ -196,58 +193,34 @@ export function UploadModal({ isOpen, onClose, onUpload, onSaveApiKey, hasStored
               disabled={isLoading}
               className="hidden"
             />
-            <div className="flex flex-col items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-[var(--color-bg-muted)] flex items-center justify-center">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-[var(--color-text-muted)]">
-                  <path d="M12 4v12M4 12h16" strokeLinecap="round" transform="rotate(0 12 12)" />
-                  <path d="M4 18h16" strokeLinecap="round" />
-                </svg>
+            {files.length > 0 ? (
+              <div>
+                <div>{files.length} file{files.length > 1 ? "s" : ""} selected</div>
+                <div className="text-xs text-[var(--color-text-muted)] mt-1">
+                  {files.map((f, i) => (
+                    <div key={i} className="truncate">{f.name}</div>
+                  ))}
+                </div>
               </div>
-              {files.length > 0 ? (
-                <>
-                  <p className="text-sm font-medium text-[var(--color-text)]">
-                    {files.length} file{files.length > 1 ? "s" : ""} selected
-                  </p>
-                  <div className="text-xs text-[var(--color-text-muted)] max-h-16 overflow-y-auto space-y-1">
-                    {files.map((f, i) => (
-                      <div key={i} className="truncate">{f.name}</div>
-                    ))}
-                  </div>
-                </>
-              ) : (
-                <>
-                  <p className="text-sm font-medium text-[var(--color-text)]">
-                    Drop PDF files here
-                  </p>
-                  <p className="text-xs text-[var(--color-text-muted)]">
-                    or click to browse
-                  </p>
-                </>
-              )}
-            </div>
+            ) : (
+              <div className="text-[var(--color-text-muted)]">
+                Drop PDF files here or click to browse
+              </div>
+            )}
           </div>
         )}
 
         {/* Error message */}
         {error && (
-          <div className="mt-4 p-4 rounded-xl bg-[var(--color-error-soft)] border border-[var(--color-error)]/20 text-[var(--color-error)] text-sm">
+          <div className="mt-4 text-sm text-[var(--color-negative)]">
             {error}
           </div>
         )}
 
         {/* Privacy note */}
         {!configureKeyOnly && (
-          <div className="mt-6 p-4 rounded-xl bg-[var(--color-bg-subtle)] text-xs text-[var(--color-text-muted)]">
-            <strong className="text-[var(--color-text-secondary)]">Privacy:</strong> Your tax return is sent directly to Anthropic's API.
-            Data is stored locally in .tax-returns.json.{" "}
-            <a
-              href="https://www.anthropic.com/legal/privacy"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[var(--color-accent)] hover:underline"
-            >
-              Privacy policy
-            </a>
+          <div className="mt-4 text-xs text-[var(--color-text-muted)]">
+            Your tax return is sent directly to Anthropic's API. Data stored locally.
           </div>
         )}
 
@@ -255,7 +228,7 @@ export function UploadModal({ isOpen, onClose, onUpload, onSaveApiKey, hasStored
         <button
           onClick={handleSubmit}
           disabled={isLoading || (configureKeyOnly ? !apiKey.trim() : (needsApiKey || activeFiles.length === 0))}
-          className="mt-6 w-full py-3.5 bg-[var(--color-accent)] text-white font-medium text-sm rounded-xl disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 transition-all shadow-sm hover:shadow-md"
+          className="mt-4 w-full py-2 bg-[var(--color-text)] text-[var(--color-bg)] text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-80"
         >
           {isLoading
             ? (configureKeyOnly ? "Saving..." : "Processing...")

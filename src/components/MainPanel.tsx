@@ -36,7 +36,7 @@ type SummaryViewMode = "table" | "receipt";
 
 export function MainPanel(props: Props) {
   const [summaryViewMode, setSummaryViewMode] = useState<SummaryViewMode>("table");
-  const title = props.view === "summary" ? "Summary" : props.view === "loading" ? "Processing" : props.title;
+  const title = props.view === "summary" ? "Today" : props.view === "loading" ? "Processing" : props.title;
 
   const summaryData = useMemo(() => {
     if (props.view !== "summary") return null;
@@ -58,24 +58,17 @@ export function MainPanel(props: Props) {
 
   return (
     <div className="flex-1 flex flex-col h-screen overflow-hidden bg-[var(--color-bg)]">
-      {/* Header */}
-      <header className="px-8 py-4 flex items-center justify-between flex-shrink-0 border-b border-[var(--color-border-subtle)]">
-        <div className="flex items-center gap-3">
-          <h2 className="text-lg font-semibold text-[var(--color-text)]">{title}</h2>
-          {props.view === "receipt" && props.title !== "Demo" && (
-            <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-[var(--color-bg-muted)] text-[var(--color-text-secondary)]">
-              Tax Year
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
+      {/* Header - visitors.now style */}
+      <header className="px-6 py-3 flex items-center justify-between flex-shrink-0 border-b border-[var(--color-border)]">
+        <div className="flex items-center gap-4">
+          <span className="text-sm">{title}</span>
           {props.view === "summary" && (
-            <div className="flex bg-[var(--color-bg-muted)] rounded-lg p-0.5">
+            <div className="flex text-sm">
               <button
                 onClick={() => setSummaryViewMode("table")}
-                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 ${
+                className={`px-2 py-1 ${
                   summaryViewMode === "table"
-                    ? "bg-[var(--color-bg-elevated)] text-[var(--color-text)] shadow-sm"
+                    ? "text-[var(--color-text)]"
                     : "text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
                 }`}
               >
@@ -83,9 +76,9 @@ export function MainPanel(props: Props) {
               </button>
               <button
                 onClick={() => setSummaryViewMode("receipt")}
-                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 ${
+                className={`px-2 py-1 ${
                   summaryViewMode === "receipt"
-                    ? "bg-[var(--color-bg-elevated)] text-[var(--color-text)] shadow-sm"
+                    ? "text-[var(--color-text)]"
                     : "text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
                 }`}
               >
@@ -93,21 +86,17 @@ export function MainPanel(props: Props) {
               </button>
             </div>
           )}
-          <button
-            onClick={props.onToggleChat}
-            className={`px-4 py-2 text-xs font-medium rounded-lg transition-all duration-200 flex items-center gap-2 ${
-              props.isChatOpen
-                ? "bg-[var(--color-accent)] text-white shadow-md"
-                : "bg-[var(--color-bg-muted)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-elevated)] hover:text-[var(--color-text)] hover:shadow-sm"
-            }`}
-            title={props.isChatOpen ? "Close chat" : "Open chat"}
-          >
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M14 10c0 .55-.45 1-1 1H5l-3 3V3c0-.55.45-1 1-1h10c.55 0 1 .45 1 1v7z" />
-            </svg>
-            Chat
-          </button>
         </div>
+        <button
+          onClick={props.onToggleChat}
+          className={`text-sm ${
+            props.isChatOpen
+              ? "text-[var(--color-text)]"
+              : "text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+          }`}
+        >
+          Chat
+        </button>
       </header>
 
       {/* Content */}
