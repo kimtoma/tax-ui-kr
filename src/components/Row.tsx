@@ -9,18 +9,14 @@ interface RowProps {
 }
 
 export function Row({ label, amount, showSign, isTotal, isMuted }: RowProps) {
-  const className = [
-    "flex justify-between py-0.5",
-    isTotal && "font-semibold",
-    isMuted && "text-[var(--color-muted)]",
-  ]
-    .filter(Boolean)
-    .join(" ");
-
   return (
-    <div className={className}>
+    <div
+      className={`flex justify-between items-center py-1.5 text-sm ${
+        isTotal ? "font-medium" : ""
+      } ${isMuted ? "text-(--color-text-muted)" : ""}`}
+    >
       <span>{label}</span>
-      <span>{formatCurrency(amount, showSign)}</span>
+      <span className="tabular-nums">{formatCurrency(amount, showSign)}</span>
     </div>
   );
 }
@@ -33,10 +29,10 @@ interface RateRowProps {
 
 export function RateRow({ label, marginal, effective }: RateRowProps) {
   return (
-    <div className="flex justify-between py-0.5">
-      <span className="w-32">{label}</span>
-      <span className="w-20 text-right">{marginal}</span>
-      <span className="w-20 text-right">{effective}</span>
+    <div className="flex justify-between items-center py-1.5 text-sm">
+      <span className="flex-1">{label}</span>
+      <span className="w-20 text-right tabular-nums">{marginal}</span>
+      <span className="w-20 text-right tabular-nums">{effective}</span>
     </div>
   );
 }

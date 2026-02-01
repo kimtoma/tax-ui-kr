@@ -1,225 +1,401 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import type { TaxReturn } from "../lib/schema";
+import Markdown from "react-markdown";
 import { BrailleSpinner } from "./BrailleSpinner";
+import { Button } from "./Button";
 
-interface Message {
+export interface ChatMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
 }
 
 interface Props {
-  returns: Record<number, TaxReturn>;
+  messages: ChatMessage[];
+  isLoading: boolean;
   hasApiKey: boolean;
+  isDemo: boolean;
+  onSubmit: (prompt: string) => void;
+  onNewChat: () => void;
   onClose: () => void;
+  followUpSuggestions?: string[];
+  isLoadingSuggestions?: boolean;
 }
 
-const STORAGE_KEY = "tax-chat-history";
+const WIDTH_STORAGE_KEY = "tax-chat-width";
+const MIN_WIDTH = 320;
+const MAX_WIDTH_PERCENT = 0.5;
 
-function loadMessages(): Message[] {
+function loadWidth(): number {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const stored = localStorage.getItem(WIDTH_STORAGE_KEY);
     if (stored) {
-      return JSON.parse(stored);
+      return Math.max(MIN_WIDTH, parseInt(stored, 10));
     }
   } catch {
     // Ignore errors
   }
-  return [];
+  return 360;
 }
 
-function saveMessages(messages: Message[]) {
+function saveWidth(width: number) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+    localStorage.setItem(WIDTH_STORAGE_KEY, String(width));
   } catch {
     // Ignore errors
   }
 }
 
-export function Chat({ returns, hasApiKey, onClose }: Props) {
-  const [messages, setMessages] = useState<Message[]>(() => loadMessages());
+export function Chat({
+  messages,
+  isLoading,
+  hasApiKey,
+  isDemo,
+  onSubmit,
+  onNewChat,
+  onClose,
+  followUpSuggestions,
+  isLoadingSuggestions,
+}: Props) {
   const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [width, setWidth] = useState(() => loadWidth());
+  const [isResizing, setIsResizing] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [hasTopOverflow, setHasTopOverflow] = useState(false);
+  const [hasBottomOverflow, setHasBottomOverflow] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Persist messages when they change
   useEffect(() => {
-    saveMessages(messages);
-  }, [messages]);
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  useEffect(() => {
+    if (!isResizing) {
+      saveWidth(width);
+    }
+  }, [width, isResizing]);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isResizing) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const maxWidth = window.innerWidth * MAX_WIDTH_PERCENT;
+      const newWidth = Math.min(
+        maxWidth,
+        Math.max(MIN_WIDTH, window.innerWidth - e.clientX),
+      );
+      setWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isResizing]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
+    const container = messagesContainerRef.current;
+    if (!container) return;
 
-  const handleNewChat = useCallback(() => {
-    setMessages([]);
-    saveMessages([]);
-    inputRef.current?.focus();
-  }, []);
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const prompt = input.trim();
-    if (!prompt || isLoading) return;
-
-    const userMessage: Message = {
-      id: crypto.randomUUID(),
-      role: "user",
-      content: prompt,
+    const checkOverflow = () => {
+      const hasVerticalScroll = container.scrollHeight > container.clientHeight;
+      setHasTopOverflow(hasVerticalScroll && container.scrollTop > 1);
+      setHasBottomOverflow(
+        hasVerticalScroll &&
+          container.scrollTop <
+            container.scrollHeight - container.clientHeight - 1,
+      );
     };
 
-    setMessages((prev) => [...prev, userMessage]);
-    setInput("");
-    setIsLoading(true);
+    checkOverflow();
+    container.addEventListener("scroll", checkOverflow);
+    const observer = new ResizeObserver(checkOverflow);
+    observer.observe(container);
 
-    try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt,
-          history: messages,
-        }),
-      });
+    return () => {
+      container.removeEventListener("scroll", checkOverflow);
+      observer.disconnect();
+    };
+  }, [messages]);
 
-      if (!res.ok) {
-        const { error } = await res.json();
-        throw new Error(error || `HTTP ${res.status}`);
-      }
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
 
-      const { response } = await res.json();
+  useEffect(() => {
+    const textarea = inputRef.current;
+    if (textarea) {
+      textarea.style.height = "auto";
+      textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`;
+    }
+  }, [input]);
 
-      const assistantMessage: Message = {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        content: response,
-      };
-
-      setMessages((prev) => [...prev, assistantMessage]);
-    } catch (err) {
-      console.error("Chat error:", err);
-      const errorMessage: Message = {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        content: `Error: ${err instanceof Error ? err.message : "Failed to get response"}`,
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const prompt = input.trim();
+    if (prompt && !isLoading) {
+      onSubmit(prompt);
+      setInput("");
     }
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      handleSubmit(e);
+      const prompt = input.trim();
+      if (prompt && !isLoading) {
+        onSubmit(prompt);
+        setInput("");
+      }
     }
   }
 
-  const hasReturns = Object.keys(returns).length > 0;
+  function handleNewChat() {
+    onNewChat();
+    inputRef.current?.focus();
+  }
 
   return (
-    <div className="w-80 flex flex-col h-full border-l border-[var(--color-border)] font-mono text-sm">
-      <header className="px-4 py-3 border-b border-[var(--color-border)] flex items-center justify-between flex-shrink-0">
-        <h2 className="text-sm font-bold">Chat</h2>
-        <div className="flex items-center gap-2">
+    <div
+      className={`flex flex-col h-full bg-(--color-bg) border-l border-(--color-border) relative ${
+        isMobile ? "fixed inset-0 z-40" : ""
+      }`}
+      style={isMobile ? undefined : { width }}
+    >
+      {/* Resize handle */}
+      <div
+        onMouseDown={handleMouseDown}
+        className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-(--color-border) z-10 hidden md:block"
+      />
+      {/* Header */}
+      <header className="h-12 pl-4 pr-2 flex items-center justify-between border-b border-(--color-border)">
+        <span className="text-sm">Chat</span>
+        <div className="flex items-center gap-1">
           {messages.length > 0 && (
-            <button
-              onClick={handleNewChat}
-              className="text-xs text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors"
-              title="Start new chat"
-            >
+            <Button variant="ghost" size="sm" onClick={handleNewChat}>
               New
-            </button>
+            </Button>
           )}
-          <button
-            onClick={onClose}
-            className="text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors"
-            title="Close chat"
-          >
-            ✕
-          </button>
+          <Button variant="ghost" size="sm" iconOnly onClick={onClose}>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+            >
+              <path d="M4 4l8 8M12 4l-8 8" />
+            </svg>
+          </Button>
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto p-4">
-        {messages.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-[var(--color-muted)]">
-            <div className="text-center">
-              <p className="mb-4 text-xs">Ask questions about your tax returns.</p>
-              {!hasApiKey && (
-                <p className="text-xs text-amber-600 dark:text-amber-400">
-                  Configure API key first.
-                </p>
-              )}
-              {hasApiKey && !hasReturns && (
-                <p className="text-xs">Upload tax returns to start.</p>
-              )}
-              {hasApiKey && hasReturns && (
-                <div className="text-left text-xs space-y-1">
-                  <p className="text-[var(--color-text)] font-medium mb-2">Try:</p>
-                  <p>"Total income in 2023?"</p>
-                  <p>"Compare my tax rates"</p>
-                  <p>"Effective tax rate?"</p>
+      {/* Messages */}
+      <div className="relative flex-1 min-h-0">
+        {/* Top shadow */}
+        <div
+          className={`absolute top-0 left-0 right-0 h-4 pointer-events-none z-10 transition-opacity duration-150 ${
+            hasTopOverflow
+              ? "opacity-100 shadow-[0_8px_16px_-8px_rgba(0,0,0,0.1)] dark:shadow-[0_8px_16px_-8px_rgba(0,0,0,0.3)]"
+              : "opacity-0"
+          }`}
+        />
+        <div ref={messagesContainerRef} className="h-full overflow-y-auto p-4">
+          {messages.length === 0 ? (
+            <div className="h-full" />
+          ) : (
+            <div className="space-y-4">
+              {messages.map((message) => (
+                <div key={message.id}>
+                  <div
+                    className="text-xs mb-1"
+                    style={{
+                      color:
+                        message.role === "assistant"
+                          ? "rgb(217, 119, 87)"
+                          : "var(--color-text-muted)",
+                    }}
+                  >
+                    {message.role === "user" ? "You" : "Claude"}
+                  </div>
+                  <div className="text-sm prose-chat">
+                    <Markdown
+                      components={{
+                        a: ({ href, children }) => (
+                          <a
+                            href={href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="underline hover:text-(--color-text-muted)"
+                          >
+                            {children}
+                          </a>
+                        ),
+                        code: ({ children }) => (
+                          <code className="prose-code px-1 py-0.5 bg-(--color-bg-muted) rounded text-xs font-mono">
+                            {children}
+                          </code>
+                        ),
+                        pre: ({ children }) => (
+                          <pre className="my-2 p-2 bg-(--color-bg-muted) rounded text-xs font-mono overflow-x-auto">
+                            {children}
+                          </pre>
+                        ),
+                        table: ({ children }) => (
+                          <div className="my-2 overflow-x-auto">
+                            <table className="text-xs border-collapse">
+                              {children}
+                            </table>
+                          </div>
+                        ),
+                        thead: ({ children }) => (
+                          <thead className="border-b border-(--color-border)">
+                            {children}
+                          </thead>
+                        ),
+                        th: ({ children }) => (
+                          <th className="text-left py-1 pr-4 font-medium text-(--color-text-muted)">
+                            {children}
+                          </th>
+                        ),
+                        td: ({ children }) => (
+                          <td className="py-1 pr-4 tabular-nums">{children}</td>
+                        ),
+                      }}
+                    >
+                      {message.content}
+                    </Markdown>
+                  </div>
+                </div>
+              ))}
+              {isLoading && (
+                <div>
+                  <div
+                    className="text-xs mb-1"
+                    style={{ color: "rgb(217, 119, 87)" }}
+                  >
+                    Claude
+                  </div>
+                  <BrailleSpinner className="text-sm" />
                 </div>
               )}
+              <div ref={messagesEndRef} />
             </div>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
-              >
-                <div
-                  className={`max-w-[90%] px-3 py-2 text-xs ${
-                    message.role === "user"
-                      ? "bg-[var(--color-text)] text-[var(--color-bg)]"
-                      : "border border-[var(--color-border)]"
-                  }`}
-                >
-                  <div className="whitespace-pre-wrap">{message.content}</div>
-                </div>
-              </div>
-            ))}
-            {isLoading && (
-              <div className="flex justify-start">
-                <div className="px-3 py-2 border border-[var(--color-border)] text-xs">
-                  <BrailleSpinner />
-                </div>
-              </div>
-            )}
-            <div ref={messagesEndRef} />
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="p-3 border-t border-[var(--color-border)]">
-        <div className="flex gap-2">
-          <textarea
-            ref={inputRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={hasApiKey ? "Ask..." : "Need API key"}
-            disabled={!hasApiKey || isLoading}
-            rows={1}
-            className="flex-1 px-2 py-1.5 border border-[var(--color-border)] bg-transparent text-[var(--color-text)] font-mono text-xs resize-none focus:outline-none focus:ring-1 focus:ring-[var(--color-text)] disabled:opacity-50"
-          />
-          <button
-            type="submit"
-            disabled={!hasApiKey || isLoading || !input.trim()}
-            className="px-3 py-1.5 bg-[var(--color-text)] text-[var(--color-bg)] font-medium text-xs disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 transition-opacity"
+      {/* Dynamic follow-up suggestions */}
+      {messages.length > 0 &&
+        !isLoading &&
+        (isLoadingSuggestions ||
+          (followUpSuggestions && followUpSuggestions.length > 0)) && (
+          <div
+            className={`px-4 pb-2 pt-4 flex flex-wrap gap-2 transition-opacity duration-150 border-t border-(--color-border) ${
+              hasBottomOverflow
+                ? "shadow-[0_-8px_8px_-8px_rgba(0,0,0,0.08)] dark:shadow-[0_-8px_16px_-8px_rgba(0,0,0,0.3)]"
+                : ""
+            }`}
+            style={{
+              opacity: input ? 0 : 1,
+              pointerEvents: input ? "none" : "auto",
+            }}
           >
-            →
-          </button>
+            {!isLoadingSuggestions && (
+              <span className="text-xs text-(--color-text-muted) mb-1">
+                Suggested follow-ups
+              </span>
+            )}
+            {isLoadingSuggestions ? (
+              <BrailleSpinner className="text-xs text-(--color-text-muted)" />
+            ) : (
+              followUpSuggestions?.map((suggestion) => (
+                <Button
+                  key={suggestion}
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => onSubmit(suggestion)}
+                  className="text-left text-[13px]"
+                >
+                  {suggestion}
+                </Button>
+              ))
+            )}
+          </div>
+        )}
+
+      {/* Suggestions - show when empty and no input */}
+      {messages.length === 0 && (isDemo || hasApiKey) && (
+        <div
+          className="px-4 pb-2 space-y-2 transition-opacity duration-150"
+          style={{
+            opacity: input ? 0 : 1,
+            pointerEvents: input ? "none" : "auto",
+          }}
+        >
+          {[
+            "Help me understand my tax returns",
+            "How can I optimize next year?",
+            "Look for mistakes in my tax return history",
+          ].map((suggestion) => (
+            <Button
+              key={suggestion}
+              variant="secondary"
+              size="sm"
+              onClick={() => onSubmit(suggestion)}
+              className="block text-left text-[13px]"
+            >
+              {suggestion}
+            </Button>
+          ))}
         </div>
+      )}
+
+      {/* Input */}
+      <form
+        onSubmit={handleSubmit}
+        className={`p-4 pt-2 pb-3 ${
+          hasBottomOverflow &&
+          !(
+            messages.length > 0 &&
+            !isLoading &&
+            (isLoadingSuggestions ||
+              (followUpSuggestions && followUpSuggestions.length > 0))
+          )
+            ? "shadow-[0_-4px_16px_-8px_rgba(0,0,0,0.1)] dark:shadow-[0_-8px_16px_-8px_rgba(0,0,0,0.3)]"
+            : ""
+        }`}
+      >
+        <textarea
+          ref={inputRef}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder={isDemo || hasApiKey ? "Ask anything..." : "Need API key"}
+          disabled={(!isDemo && !hasApiKey) || isLoading}
+          rows={1}
+          className="w-full px-3 py-2.5 bg-(--color-bg-muted) rounded-lg text-sm placeholder:text-(--color-text-muted) resize-none focus:outline-none disabled:opacity-50 overflow-y-auto"
+        />
       </form>
     </div>
   );

@@ -1,15 +1,12 @@
 export function Separator() {
-  return (
-    <div className="text-[var(--color-muted)] select-none my-2">
-      {"─".repeat(44)}
-    </div>
-  );
+  return <div className="h-px bg-(--color-border) my-2" />;
 }
 
 export function DoubleSeparator() {
   return (
-    <div className="text-[var(--color-text)] select-none my-2">
-      {"═".repeat(44)}
+    <div className="flex flex-col gap-0.5 my-2">
+      <div className="h-px bg-(--color-border)" />
+      <div className="h-px bg-(--color-border)" />
     </div>
   );
 }
@@ -20,7 +17,7 @@ interface SectionHeaderProps {
 
 export function SectionHeader({ children }: SectionHeaderProps) {
   return (
-    <h2 className="font-semibold text-sm tracking-wide mt-6 mb-2">
+    <h2 className="text-xs text-(--color-text-muted) mt-6 mb-2">
       {children}
     </h2>
   );

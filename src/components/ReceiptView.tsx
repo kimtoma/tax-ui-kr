@@ -1,15 +1,130 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import type { TaxReturn } from "../lib/schema";
-import { formatPercent } from "../lib/format";
-import { getTotalTax, getEffectiveRate } from "../lib/tax-calculations";
-import { type TimeUnit, TIME_UNIT_LABELS, convertToTimeUnit, formatTimeUnitValue } from "../lib/time-units";
-import { Row, RateRow } from "./Row";
-import { Separator, DoubleSeparator, SectionHeader } from "./Section";
-import { SleepingEarnings } from "./SleepingEarnings";
-import { TaxFreedomDay } from "./TaxFreedomDay";
+import { Menu, MenuItem } from "./Menu";
+import { Tooltip } from "./Tooltip";
+import { formatCurrency, formatPercent, formatCompact } from "../lib/format";
+import { getTotalTax } from "../lib/tax-calculations";
+import {
+  type TimeUnit,
+  TIME_UNIT_LABELS,
+  convertToTimeUnit,
+  formatTimeUnitValueCompact,
+} from "../lib/time-units";
 
 interface Props {
   data: TaxReturn;
+}
+
+function CategoryHeader({ children }: { children: React.ReactNode }) {
+  return (
+    <tr>
+      <td colSpan={2} className="pt-6 pb-2">
+        <span className="text-xs text-(--color-text-muted)">{children}</span>
+      </td>
+    </tr>
+  );
+}
+
+function DataRow({
+  label,
+  amount,
+  isMuted,
+  showSign,
+}: {
+  label: string;
+  amount: number;
+  isMuted?: boolean;
+  showSign?: boolean;
+}) {
+  return (
+    <tr className={isMuted ? "text-(--color-text-muted)" : ""}>
+      <td className="py-1.5 text-sm">{label}</td>
+      <td className="py-1.5 text-sm text-right tabular-nums">
+        {showSign && amount >= 0 ? "+" : ""}
+        {formatCurrency(amount)}
+      </td>
+    </tr>
+  );
+}
+
+function TotalRow({
+  label,
+  amount,
+  showSign,
+}: {
+  label: string;
+  amount: number;
+  showSign?: boolean;
+}) {
+  return (
+    <tr className="font-medium border-t border-(--color-border)">
+      <td className="py-2 text-sm">{label}</td>
+      <td className="py-2 text-sm text-right tabular-nums">
+        {showSign && amount >= 0 ? "+" : ""}
+        {formatCurrency(amount)}
+      </td>
+    </tr>
+  );
+}
+
+function RatesSection({
+  rates,
+  stateName,
+}: {
+  rates: TaxReturn["rates"];
+  stateName?: string;
+}) {
+  if (!rates) return null;
+  return (
+    <>
+      <tr>
+        <td className="pt-6 pb-2 text-xs text-(--color-text-muted)">
+          Tax Rates
+        </td>
+        <td className="pt-6 pb-2 text-xs text-(--color-text-muted) text-right">
+          <span className="inline-block w-16">Marginal</span>
+          <span className="inline-block w-16">Effective</span>
+        </td>
+      </tr>
+      <tr>
+        <td className="py-1.5 text-sm">Federal</td>
+        <td className="py-1.5 text-sm text-right tabular-nums">
+          <span className="inline-block w-16">
+            {formatPercent(rates.federal.marginal)}
+          </span>
+          <span className="inline-block w-16">
+            {formatPercent(rates.federal.effective)}
+          </span>
+        </td>
+      </tr>
+      {rates.state && (
+        <tr>
+          <td className="py-1.5 text-sm">{stateName || "State"}</td>
+          <td className="py-1.5 text-sm text-right tabular-nums">
+            <span className="inline-block w-16">
+              {formatPercent(rates.state.marginal)}
+            </span>
+            <span className="inline-block w-16">
+              {formatPercent(rates.state.effective)}
+            </span>
+          </td>
+        </tr>
+      )}
+      {rates.combined && (
+        <tr className="border-t border-(--color-border)">
+          <td className="py-2 text-sm font-medium">Combined</td>
+          <td className="py-2 text-sm text-right tabular-nums font-medium">
+            <span className="inline-block w-16">
+              {formatPercent(rates.combined.marginal)}
+            </span>
+            <span className="inline-block w-16">
+              {formatPercent(rates.combined.effective)}
+            </span>
+          </td>
+        </tr>
+      )}
+    </>
+  );
 }
 
 export function ReceiptView({ data }: Props) {
@@ -19,172 +134,212 @@ export function ReceiptView({ data }: Props) {
   const netIncome = data.income.total - totalTax;
   const grossMonthly = Math.round(data.income.total / 12);
   const netMonthly = Math.round(netIncome / 12);
-  const hourlyRate = netIncome / 2080; // 40 hrs × 52 weeks
+  const hourlyRate = netIncome / 2080;
   const timeUnitValue = convertToTimeUnit(hourlyRate, timeUnit);
-  const effectiveRate = getEffectiveRate(data);
 
   return (
-    <div className="max-w-md mx-auto px-6 py-12 font-mono text-sm">
-      <header className="mb-2">
-        <h1 className="text-lg font-bold tracking-tight">{data.year} TAX RETURN</h1>
-        <p className="text-[var(--color-muted)] text-xs">{data.name}</p>
-      </header>
+    <div className="max-w-2xl mx-auto">
+      {/* Year Header */}
+      <div className="px-6 pt-8 flex items-center justify-between">
+        <h1 className="text-3xl -tracking-wider font-bold tabular-nums">
+          {data.year}
+        </h1>
+      </div>
 
-      <SectionHeader>INCOME</SectionHeader>
-      <Separator />
-      {data.income.items.map((item, i) => (
-        <Row key={i} label={item.label} amount={item.amount} />
-      ))}
-      <Separator />
-      <Row label="Total income" amount={data.income.total} isTotal />
-
-      <SectionHeader>FEDERAL</SectionHeader>
-      <Separator />
-      <Row label="Adjusted gross income" amount={data.federal.agi} />
-      {data.federal.deductions.map((item, i) => (
-        <Row key={i} label={item.label} amount={item.amount} isMuted />
-      ))}
-      <Separator />
-      <Row label="Taxable income" amount={data.federal.taxableIncome} />
-      <Row label="Tax" amount={data.federal.tax} />
-      {data.federal.credits.map((item, i) => (
-        <Row key={i} label={item.label} amount={item.amount} isMuted />
-      ))}
-      {data.federal.payments.map((item, i) => (
-        <Row key={i} label={item.label} amount={item.amount} isMuted />
-      ))}
-      <Separator />
-      <Row
-        label={data.federal.refundOrOwed >= 0 ? "Refund" : "Owed"}
-        amount={data.federal.refundOrOwed}
-        isTotal
-        showSign
-      />
-
-      {data.states.map((state, i) => (
-        <section key={i}>
-          <SectionHeader>{state.name.toUpperCase()}</SectionHeader>
-          <Separator />
-          <Row label="Adjusted gross income" amount={state.agi} />
-          {state.deductions.map((item, j) => (
-            <Row key={j} label={item.label} amount={item.amount} isMuted />
-          ))}
-          <Separator />
-          <Row label="Taxable income" amount={state.taxableIncome} />
-          <Row label="Tax" amount={state.tax} />
-          {state.adjustments.map((item, j) => (
-            <Row key={j} label={item.label} amount={item.amount} />
-          ))}
-          {state.payments.map((item, j) => (
-            <Row key={j} label={item.label} amount={item.amount} isMuted />
-          ))}
-          <Separator />
-          <Row
-            label={state.refundOrOwed >= 0 ? "Refund" : "Owed"}
-            amount={state.refundOrOwed}
-            isTotal
-            showSign
-          />
-        </section>
-      ))}
-
-      <SectionHeader>NET POSITION</SectionHeader>
-      <Separator />
-      <Row
-        label={`Federal ${data.summary.federalAmount >= 0 ? "refund" : "owed"}`}
-        amount={data.summary.federalAmount}
-        showSign
-      />
-      {data.summary.stateAmounts.map((item, i) => (
-        <Row
-          key={i}
-          label={`${item.state} ${item.amount >= 0 ? "refund" : "owed"}`}
-          amount={item.amount}
-          showSign
-        />
-      ))}
-      <DoubleSeparator />
-      <Row label="Net" amount={data.summary.netPosition} isTotal showSign />
-
-      {data.rates && (
-        <>
-          <SectionHeader>TAX RATES</SectionHeader>
-          <Separator />
-          <div className="flex justify-between py-0.5 text-[var(--color-muted)] text-xs">
-            <span className="w-32" />
-            <span className="w-20 text-right">Marginal</span>
-            <span className="w-20 text-right">Effective</span>
+      {/* Stats Header */}
+      <div className="px-6 py-6 shrink-0">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Income */}
+          <div>
+            <div className="text-xs text-(--color-text-muted) mb-1">Income</div>
+            <div className="text-2xl font-semibold tabular-nums tracking-tight">
+              {formatCompact(data.income.total)}
+            </div>
           </div>
-          <RateRow
-            label="Federal"
-            marginal={formatPercent(data.rates.federal.marginal)}
-            effective={formatPercent(data.rates.federal.effective)}
-          />
-          {data.rates.state && (
-            <RateRow
-              label={data.states[0]?.name || "State"}
-              marginal={formatPercent(data.rates.state.marginal)}
-              effective={formatPercent(data.rates.state.effective)}
-            />
-          )}
-          {data.rates.combined && (
-            <>
-              <Separator />
-              <RateRow
-                label="Combined"
-                marginal={formatPercent(data.rates.combined.marginal)}
-                effective={formatPercent(data.rates.combined.effective)}
+
+          {/* Taxes */}
+          <div>
+            <div className="text-xs text-(--color-text-muted) mb-1">Taxes</div>
+            <div className="text-2xl font-semibold tabular-nums tracking-tight">
+              {formatCompact(totalTax)}
+            </div>
+          </div>
+
+          {/* Net */}
+          <div>
+            <div className="text-xs text-(--color-text-muted) mb-1">Net</div>
+            <div className="text-2xl font-semibold tabular-nums tracking-tight">
+              {formatCompact(netIncome)}
+            </div>
+          </div>
+
+          {/* Time unit selector */}
+          <div>
+            <div className="flex items-center gap-1.5 mb-1">
+              <Menu
+                triggerVariant="inline"
+                triggerClassName="text-xs"
+                popupClassName="min-w-[130px] text-sm"
+                sideOffset={6}
+                trigger={
+                  <>
+                    {TIME_UNIT_LABELS[timeUnit]}
+                    <svg
+                      width="10"
+                      height="10"
+                      viewBox="0 0 16 16"
+                      fill="currentColor"
+                      className="opacity-50"
+                    >
+                      <path
+                        d="M4 6l4 4 4-4"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </>
+                }
+              >
+                {(["daily", "hourly", "minute", "second"] as TimeUnit[]).map(
+                  (unit) => (
+                    <MenuItem
+                      key={unit}
+                      onClick={() => setTimeUnit(unit)}
+                      selected={timeUnit === unit}
+                    >
+                      {TIME_UNIT_LABELS[unit]}
+                    </MenuItem>
+                  ),
+                )}
+              </Menu>
+              <Tooltip content="Based on 2080hrs of work per year">
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                >
+                  <circle cx="8" cy="8" r="6.5" />
+                  <path d="M8 7.5V11M8 5.5V5" strokeLinecap="round" />
+                </svg>
+              </Tooltip>
+            </div>
+            <div className="text-2xl font-semibold tabular-nums tracking-tight">
+              {formatTimeUnitValueCompact(timeUnitValue, timeUnit)}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Content Table */}
+      <div className="px-6 py-4">
+        <table className="w-full">
+          <tbody className="no-zebra">
+            <CategoryHeader>Monthly Breakdown</CategoryHeader>
+            <DataRow label="Gross monthly" amount={grossMonthly} />
+            <DataRow label="Net monthly" amount={netMonthly} />
+
+            <CategoryHeader>Income</CategoryHeader>
+            {data.income.items.map((item, i) => (
+              <DataRow key={i} label={item.label} amount={item.amount} />
+            ))}
+            <TotalRow label="Total income" amount={data.income.total} />
+
+            <CategoryHeader>Federal</CategoryHeader>
+            <DataRow label="Adjusted gross income" amount={data.federal.agi} />
+            {data.federal.deductions.map((item, i) => (
+              <DataRow
+                key={i}
+                label={item.label}
+                amount={item.amount}
+                isMuted
               />
-            </>
-          )}
-        </>
-      )}
+            ))}
+            <DataRow
+              label="Taxable income"
+              amount={data.federal.taxableIncome}
+            />
+            <DataRow label="Tax" amount={data.federal.tax} />
+            {data.federal.credits.map((item, i) => (
+              <DataRow
+                key={i}
+                label={item.label}
+                amount={item.amount}
+                isMuted
+              />
+            ))}
+            {data.federal.payments.map((item, i) => (
+              <DataRow
+                key={i}
+                label={item.label}
+                amount={item.amount}
+                isMuted
+              />
+            ))}
+            <TotalRow
+              label={data.federal.refundOrOwed >= 0 ? "Refund" : "Owed"}
+              amount={data.federal.refundOrOwed}
+              showSign
+            />
 
-      <SectionHeader>MONTHLY BREAKDOWN</SectionHeader>
-      <Separator />
-      <Row label="Gross monthly" amount={grossMonthly} />
-      <Row label="Net monthly (after tax)" amount={netMonthly} />
+            {data.states.map((state, i) => (
+              <React.Fragment key={i}>
+                <CategoryHeader>{state.name}</CategoryHeader>
+                <DataRow label="Adjusted gross income" amount={state.agi} />
+                {state.deductions.map((item, j) => (
+                  <DataRow
+                    key={j}
+                    label={item.label}
+                    amount={item.amount}
+                    isMuted
+                  />
+                ))}
+                <DataRow label="Taxable income" amount={state.taxableIncome} />
+                <DataRow label="Tax" amount={state.tax} />
+                {state.adjustments.map((item, j) => (
+                  <DataRow key={j} label={item.label} amount={item.amount} />
+                ))}
+                {state.payments.map((item, j) => (
+                  <DataRow
+                    key={j}
+                    label={item.label}
+                    amount={item.amount}
+                    isMuted
+                  />
+                ))}
+                <TotalRow
+                  label={state.refundOrOwed >= 0 ? "Refund" : "Owed"}
+                  amount={state.refundOrOwed}
+                  showSign
+                />
+              </React.Fragment>
+            ))}
 
-      <div className="flex justify-between py-1">
-        <span className="flex items-center gap-1">
-          {TIME_UNIT_LABELS[timeUnit]} take-home
-          {timeUnit === "hourly" && (
-            <span
-              className="text-[10px] text-[var(--color-muted)] cursor-help"
-              title="Based on 2,080 working hours per year (40 hrs × 52 weeks)"
-            >
-              ?
-            </span>
-          )}
-        </span>
-        <span className="tabular-nums">
-          {formatTimeUnitValue(timeUnitValue, timeUnit)}
-        </span>
+            <CategoryHeader>Net Position</CategoryHeader>
+            <DataRow
+              label={`Federal ${data.summary.federalAmount >= 0 ? "refund" : "owed"}`}
+              amount={data.summary.federalAmount}
+              showSign
+            />
+            {data.summary.stateAmounts.map((item, i) => (
+              <DataRow
+                key={i}
+                label={`${item.state} ${item.amount >= 0 ? "refund" : "owed"}`}
+                amount={item.amount}
+                showSign
+              />
+            ))}
+            <TotalRow label="Net" amount={data.summary.netPosition} showSign />
+
+            <RatesSection rates={data.rates} stateName={data.states[0]?.name} />
+          </tbody>
+        </table>
       </div>
-
-      <div className="flex gap-1 mt-1 mb-4">
-        {(["daily", "hourly", "minute", "second"] as TimeUnit[]).map((unit) => (
-          <button
-            key={unit}
-            onClick={() => setTimeUnit(unit)}
-            className={`px-2 py-0.5 text-xs border transition-colors ${
-              timeUnit === unit
-                ? "border-[var(--color-foreground)] bg-[var(--color-foreground)] text-[var(--color-background)]"
-                : "border-[var(--color-border)] text-[var(--color-muted)] hover:border-[var(--color-muted)]"
-            }`}
-          >
-            {unit.charAt(0).toUpperCase()}
-          </button>
-        ))}
-      </div>
-
-      <SleepingEarnings netIncome={netIncome} />
-
-      <TaxFreedomDay years={[{ year: data.year, effectiveRate }]} />
-
-      <footer className="mt-12 pt-4 border-t border-[var(--color-border)] text-[var(--color-muted)] text-xs text-center">
-        Tax Year {data.year} · Filed {data.year + 1}
-      </footer>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { serve } from "bun";
 import Anthropic from "@anthropic-ai/sdk";
-import { getReturns, saveReturn, deleteReturn, getApiKey, saveApiKey } from "./lib/storage";
+import { getReturns, saveReturn, deleteReturn, getApiKey, saveApiKey, clearAllData } from "./lib/storage";
 import { parseTaxReturn, extractYearFromPdf } from "./lib/parser";
 import index from "./index.html";
 
@@ -28,7 +28,9 @@ const server = serve({
     "/api/config": {
       GET: () => {
         const hasKey = Boolean(getApiKey());
-        return Response.json({ hasKey });
+        const isDemo = process.env.DEMO_MODE === "true";
+        const isDev = process.env.NODE_ENV !== "production";
+        return Response.json({ hasKey, isDemo, isDev });
       },
     },
     "/api/config/key": {
@@ -38,6 +40,12 @@ const server = serve({
           return Response.json({ error: "Invalid API key" }, { status: 400 });
         }
         await saveApiKey(apiKey.trim());
+        return Response.json({ success: true });
+      },
+    },
+    "/api/clear-data": {
+      POST: async () => {
+        await clearAllData();
         return Response.json({ success: true });
       },
     },
@@ -83,7 +91,7 @@ const server = serve({
     },
     "/api/chat": {
       POST: async (req) => {
-        const { prompt, history } = await req.json();
+        const { prompt, history, returns: clientReturns } = await req.json();
 
         if (!prompt || typeof prompt !== "string") {
           return Response.json({ error: "No prompt provided" }, { status: 400 });
@@ -94,7 +102,10 @@ const server = serve({
           return Response.json({ error: "No API key configured" }, { status: 400 });
         }
 
-        const returns = await getReturns();
+        // Use client-provided returns (for dev sample data) or fall back to stored returns
+        const returns = clientReturns && Object.keys(clientReturns).length > 0
+          ? clientReturns
+          : await getReturns();
         const client = new Anthropic({ apiKey });
 
         try {
@@ -123,6 +134,55 @@ const server = serve({
           console.error("Chat error:", error);
           const message = error instanceof Error ? error.message : "Unknown error";
           return Response.json({ error: message }, { status: 500 });
+        }
+      },
+    },
+    "/api/suggestions": {
+      POST: async (req) => {
+        const { history, returns: clientReturns } = await req.json();
+
+        const apiKey = getApiKey();
+        if (!apiKey) {
+          return Response.json({ suggestions: [] });
+        }
+
+        const returns = clientReturns && Object.keys(clientReturns).length > 0
+          ? clientReturns
+          : await getReturns();
+
+        const client = new Anthropic({ apiKey });
+
+        try {
+          const messages: Anthropic.MessageParam[] = history.map((msg: { role: string; content: string }) => ({
+            role: msg.role as "user" | "assistant",
+            content: msg.content,
+          }));
+          // Structured outputs don't allow assistant messages in final position
+          messages.push({ role: "user", content: "Suggest 3 follow-up questions I might ask." });
+
+          const response = await client.messages.create({
+            model: "claude-haiku-4-5-20251001",
+            max_tokens: 256,
+            system: `You are helping a user explore their own tax return data. Generate 3 short follow-up questions the user might want to ask about their finances. Phrase questions in FIRST PERSON (e.g., "Why did my income drop?" not "Why did your income drop?").`,
+            messages,
+            output_config: {
+              format: {
+                type: "json_schema",
+                schema: {
+                  type: "array",
+                  items: { type: "string" },
+                },
+              },
+            },
+          });
+
+          const textBlock = response.content.find((block) => block.type === "text");
+          const suggestions = JSON.parse(textBlock?.type === "text" ? textBlock.text : "[]");
+
+          return Response.json({ suggestions: suggestions.slice(0, 3) });
+        } catch (error) {
+          console.error("Suggestions error:", error);
+          return Response.json({ suggestions: [] });
         }
       },
     },

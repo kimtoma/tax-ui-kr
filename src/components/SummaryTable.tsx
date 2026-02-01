@@ -1,8 +1,10 @@
 import { useMemo } from "react";
 import { createColumnHelper, type ColumnDef } from "@tanstack/react-table";
 import type { TaxReturn } from "../lib/schema";
-import { formatCurrency, formatPercent, formatPercentChange } from "../lib/format";
+import { formatCurrency, formatPercent } from "../lib/format";
+import { getTotalTax } from "../lib/tax-calculations";
 import { Table, type ColumnMeta } from "./Table";
+import { ChangeCell } from "./ChangeCell";
 
 interface Props {
   returns: Record<number, TaxReturn>;
@@ -15,10 +17,7 @@ interface SummaryRow {
   isHeader?: boolean;
   values: Record<number, number | undefined>;
   invertPolarity?: boolean;
-}
-
-function getTotalTax(data: TaxReturn): number {
-  return data.federal.tax + data.states.reduce((sum, s) => sum + s.tax, 0);
+  showChange?: boolean;
 }
 
 function collectRows(returns: Record<number, TaxReturn>): SummaryRow[] {
@@ -30,18 +29,20 @@ function collectRows(returns: Record<number, TaxReturn>): SummaryRow[] {
     category: string,
     label: string,
     getValue: (data: TaxReturn) => number | undefined,
-    invertPolarity?: boolean
+    options?: { invertPolarity?: boolean; showChange?: boolean }
   ) => {
     const values: Record<number, number | undefined> = {};
     for (const year of years) {
-      values[year] = getValue(returns[year]);
+      const data = returns[year];
+      if (data) values[year] = getValue(data);
     }
     rows.push({
       id: `${category}-${label}-${rows.length}`,
       category,
       label,
       values,
-      invertPolarity,
+      invertPolarity: options?.invertPolarity,
+      showChange: options?.showChange,
     });
   };
 
@@ -58,13 +59,16 @@ function collectRows(returns: Record<number, TaxReturn>): SummaryRow[] {
   // Monthly Breakdown
   addHeader("Monthly Breakdown");
   addRow("Monthly Breakdown", "Gross monthly", (data) =>
-    Math.round(data.income.total / 12)
+    Math.round(data.income.total / 12),
+    { showChange: true }
   );
   addRow("Monthly Breakdown", "Net monthly (after tax)", (data) =>
-    Math.round((data.income.total - getTotalTax(data)) / 12)
+    Math.round((data.income.total - getTotalTax(data)) / 12),
+    { showChange: true }
   );
   addRow("Monthly Breakdown", "Daily take-home", (data) =>
-    Math.round((data.income.total - getTotalTax(data)) / 12 / 30)
+    Math.round((data.income.total - getTotalTax(data)) / 12 / 30),
+    { showChange: true }
   );
 
   // Income items
@@ -80,11 +84,11 @@ function collectRows(returns: Record<number, TaxReturn>): SummaryRow[] {
       data.income.items.find((i) => i.label === label)?.amount
     );
   }
-  addRow("Income", "Total income", (data) => data.income.total);
+  addRow("Income", "Total income", (data) => data.income.total, { showChange: true });
 
   // Federal
   addHeader("Federal");
-  addRow("Federal", "Adjusted gross income", (data) => data.federal.agi);
+  addRow("Federal", "Adjusted gross income", (data) => data.federal.agi, { showChange: true });
 
   const federalDeductionLabels = new Set<string>();
   for (const r of allReturns) {
@@ -98,8 +102,8 @@ function collectRows(returns: Record<number, TaxReturn>): SummaryRow[] {
     );
   }
 
-  addRow("Federal", "Taxable income", (data) => data.federal.taxableIncome);
-  addRow("Federal", "Tax", (data) => data.federal.tax, true);
+  addRow("Federal", "Taxable income", (data) => data.federal.taxableIncome, { showChange: true });
+  addRow("Federal", "Tax", (data) => data.federal.tax, { invertPolarity: true, showChange: true });
 
   const federalCreditLabels = new Set<string>();
   for (const r of allReturns) {
@@ -125,7 +129,7 @@ function collectRows(returns: Record<number, TaxReturn>): SummaryRow[] {
     );
   }
 
-  addRow("Federal", "Refund/Owed", (data) => data.federal.refundOrOwed);
+  addRow("Federal", "Refund/Owed", (data) => data.federal.refundOrOwed, { showChange: true });
 
   // States
   const allStates = new Set<string>();
@@ -140,7 +144,7 @@ function collectRows(returns: Record<number, TaxReturn>): SummaryRow[] {
       data.states.find((s) => s.name === stateName);
 
     addHeader(stateName);
-    addRow(stateName, "Adjusted gross income", (data) => getState(data)?.agi);
+    addRow(stateName, "Adjusted gross income", (data) => getState(data)?.agi, { showChange: true });
 
     const stateDeductionLabels = new Set<string>();
     for (const r of allReturns) {
@@ -157,8 +161,8 @@ function collectRows(returns: Record<number, TaxReturn>): SummaryRow[] {
       );
     }
 
-    addRow(stateName, "Taxable income", (data) => getState(data)?.taxableIncome);
-    addRow(stateName, "Tax", (data) => getState(data)?.tax, true);
+    addRow(stateName, "Taxable income", (data) => getState(data)?.taxableIncome, { showChange: true });
+    addRow(stateName, "Tax", (data) => getState(data)?.tax, { invertPolarity: true, showChange: true });
 
     const stateAdjustmentLabels = new Set<string>();
     for (const r of allReturns) {
@@ -190,27 +194,28 @@ function collectRows(returns: Record<number, TaxReturn>): SummaryRow[] {
       );
     }
 
-    addRow(stateName, "Refund/Owed", (data) => getState(data)?.refundOrOwed);
+    addRow(stateName, "Refund/Owed", (data) => getState(data)?.refundOrOwed, { showChange: true });
   }
 
   // Net Position
   addHeader("Net Position");
-  addRow("Net Position", "Federal", (data) => data.summary.federalAmount);
+  addRow("Net Position", "Federal", (data) => data.summary.federalAmount, { showChange: true });
   for (const stateName of allStates) {
     addRow("Net Position", stateName, (data) =>
-      data.summary.stateAmounts.find((s) => s.state === stateName)?.amount
+      data.summary.stateAmounts.find((s) => s.state === stateName)?.amount,
+      { showChange: true }
     );
   }
-  addRow("Net Position", "Net total", (data) => data.summary.netPosition);
+  addRow("Net Position", "Net total", (data) => data.summary.netPosition, { showChange: true });
 
   // Rates
   addHeader("Rates");
-  addRow("Rates", "Federal marginal", (data) => data.rates?.federal.marginal, true);
-  addRow("Rates", "Federal effective", (data) => data.rates?.federal.effective, true);
-  addRow("Rates", "State marginal", (data) => data.rates?.state?.marginal, true);
-  addRow("Rates", "State effective", (data) => data.rates?.state?.effective, true);
-  addRow("Rates", "Combined marginal", (data) => data.rates?.combined?.marginal, true);
-  addRow("Rates", "Combined effective", (data) => data.rates?.combined?.effective, true);
+  addRow("Rates", "Federal marginal", (data) => data.rates?.federal.marginal, { invertPolarity: true });
+  addRow("Rates", "Federal effective", (data) => data.rates?.federal.effective, { invertPolarity: true });
+  addRow("Rates", "State marginal", (data) => data.rates?.state?.marginal, { invertPolarity: true });
+  addRow("Rates", "State effective", (data) => data.rates?.state?.effective, { invertPolarity: true });
+  addRow("Rates", "Combined marginal", (data) => data.rates?.combined?.marginal, { invertPolarity: true });
+  addRow("Rates", "Combined effective", (data) => data.rates?.combined?.effective, { invertPolarity: true });
 
   return rows;
 }
@@ -221,63 +226,43 @@ function formatValue(value: number | undefined, isRate: boolean): string {
   return formatCurrency(value);
 }
 
-function ChangeCell({
-  current,
-  previous,
-  invertPolarity,
-}: {
-  current: number | undefined;
-  previous: number | undefined;
-  invertPolarity?: boolean;
-}) {
-  if (current === undefined || previous === undefined || previous === 0) {
-    return null;
-  }
-
-  const change = ((current - previous) / Math.abs(previous)) * 100;
-  const isPositive = change >= 0;
-  const isGood = invertPolarity ? !isPositive : isPositive;
-
-  const colorClass = isGood
-    ? "text-green-600 dark:text-green-400"
-    : "text-red-600 dark:text-red-400";
-
-  return (
-    <span className={`text-xs ${colorClass}`}>
-      {formatPercentChange(current, previous)}
-    </span>
-  );
-}
-
 const columnHelper = createColumnHelper<SummaryRow>();
 
 export function SummaryTable({ returns }: Props) {
   const years = Object.keys(returns)
     .map(Number)
-    .sort((a, b) => a - b);
+    .sort((a, b) => a - b); // Oldest first
 
   const rows = useMemo(() => collectRows(returns), [returns]);
 
   const columns = useMemo(() => {
-    const cols: ColumnDef<SummaryRow, unknown>[] = [
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const cols: ColumnDef<SummaryRow, any>[] = [
       columnHelper.accessor("label", {
         header: "Line Item",
         cell: (info) => {
           const row = info.row.original;
           if (row.isHeader) {
             return (
-              <span className="text-xs font-bold text-[var(--color-muted)] uppercase tracking-wide">
-                {row.label}
-              </span>
+              <div className="pt-2">
+                <span className="text-xs text-(--color-text-muted)">
+                  {row.label}
+                </span>
+              </div>
             );
           }
-          return info.getValue();
+          const isDeduction = row.label.startsWith("−") || row.label.startsWith("–") || row.label.startsWith("- ");
+          return (
+            <span className={isDeduction ? "text-(--color-text-muted)" : "text-(--color-text)"}>
+              {info.getValue()}
+            </span>
+          );
         },
         meta: {
           sticky: true,
         } satisfies ColumnMeta,
-        size: 160,
-        maxSize: 160,
+        size: 180,
+        maxSize: 180,
       }),
     ];
 
@@ -287,20 +272,28 @@ export function SummaryTable({ returns }: Props) {
       cols.push(
         columnHelper.accessor((row) => row.values[year], {
           id: `year-${year}`,
-          header: () => year,
+          header: () => <span className="tabular-nums">{year}</span>,
           cell: (info) => {
             const row = info.row.original;
-            if (row.isHeader) return null;
+            if (row.isHeader) {
+              return null;
+            }
 
             const value = info.getValue() as number | undefined;
             const isRate = row.category === "Rates";
             const prevValue = prevYear !== undefined ? row.values[prevYear] : undefined;
 
+            const isDeduction = row.label.startsWith("−") || row.label.startsWith("–") || row.label.startsWith("- ");
+
+            const isEmpty = value === undefined;
+
             return (
-              <div className="text-right tabular-nums">
-                <span>{formatValue(value, isRate)}</span>
-                {prevYear !== undefined && (
-                  <span className="pl-2">
+              <div className="text-right tabular-nums flex items-center justify-end gap-2">
+                <span className={isEmpty ? "text-(--color-text-tertiary)" : isDeduction ? "text-(--color-text-muted)" : "text-(--color-text)"}>
+                  {formatValue(value, isRate)}
+                </span>
+                {prevYear !== undefined && row.showChange && (
+                  <span className="hidden sm:inline">
                     <ChangeCell
                       current={value}
                       previous={prevValue}
@@ -323,9 +316,24 @@ export function SummaryTable({ returns }: Props) {
     return cols;
   }, [years]);
 
+  const getRowClassName = (row: SummaryRow) => {
+    if (row.isHeader && row.category !== "Monthly Breakdown") {
+      return "border-t border-(--color-border)";
+    }
+    return "";
+  };
+
+  const isRowHoverDisabled = (row: SummaryRow) => row.isHeader === true;
+
   return (
-    <div className="p-6 font-mono text-sm">
-      <Table data={rows} columns={columns} storageKey="summary-table" />
+    <div className="text-sm w-full h-full">
+      <Table
+        data={rows}
+        columns={columns}
+        storageKey="summary-table"
+        getRowClassName={getRowClassName}
+        isRowHoverDisabled={isRowHoverDisabled}
+      />
     </div>
   );
 }

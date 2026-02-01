@@ -1,144 +1,202 @@
 import { useMemo, useState } from "react";
 import type { TaxReturn } from "../lib/schema";
+import { Tooltip } from "./Tooltip";
 import { formatCompact } from "../lib/format";
-import { getTotalTax, getNetIncome } from "../lib/tax-calculations";
-import { type TimeUnit, TIME_UNIT_LABELS, convertToTimeUnit, formatTimeUnitValueCompact } from "../lib/time-units";
+import {
+    getTotalTax,
+    getNetIncome,
+    getEffectiveRate,
+} from "../lib/tax-calculations";
+import {
+    type TimeUnit,
+    TIME_UNIT_LABELS,
+    convertToTimeUnit,
+    formatTimeUnitValueCompact,
+} from "../lib/time-units";
 import { Sparkline } from "./Sparkline";
+import { Menu, MenuItem } from "./Menu";
 
 interface Props {
-  returns: Record<number, TaxReturn>;
-}
-
-function getDailyTake(data: TaxReturn): number {
-  return Math.round(getNetIncome(data) / 365);
-}
-
-function getHourlyTake(data: TaxReturn): number {
-  return getNetIncome(data) / 2080; // 40 hrs × 52 weeks
+    returns: Record<number, TaxReturn>;
 }
 
 export function SummaryStats({ returns }: Props) {
-  const [timeUnit, setTimeUnit] = useState<TimeUnit>("daily");
+    const [timeUnit, setTimeUnit] = useState<TimeUnit>("daily");
 
-  const years = useMemo(
-    () => Object.keys(returns).map(Number).sort((a, b) => a - b),
-    [returns]
-  );
+    const years = useMemo(
+        () =>
+            Object.keys(returns)
+                .map(Number)
+                .sort((a, b) => a - b),
+        [returns],
+    );
 
-  const stats = useMemo(() => {
-    if (years.length === 0) return null;
+    const stats = useMemo(() => {
+        if (years.length === 0) return null;
 
-    const allReturns = years
-      .map((year) => returns[year])
-      .filter((r): r is TaxReturn => r !== undefined);
+        const allReturns = years
+            .map((year) => returns[year])
+            .filter((r): r is TaxReturn => r !== undefined);
 
-    if (allReturns.length === 0) return null;
+        if (allReturns.length === 0) return null;
 
-    // Sum across all years
-    const totalIncome = allReturns.reduce((sum, r) => sum + r.income.total, 0);
-    const totalTaxes = allReturns.reduce((sum, r) => sum + getTotalTax(r), 0);
-    const netIncome = totalIncome - totalTaxes;
+        // Sum across all years
+        const totalIncome = allReturns.reduce(
+            (sum, r) => sum + r.income.total,
+            0,
+        );
+        const totalTaxes = allReturns.reduce(
+            (sum, r) => sum + getTotalTax(r),
+            0,
+        );
+        const netIncome = totalIncome - totalTaxes;
+        const avgEffectiveRate =
+            allReturns.reduce((sum, r) => sum + getEffectiveRate(r), 0) /
+            allReturns.length;
 
-    // Hourly rates for time unit calculations
-    const hourlyRates = allReturns.map((r) => getHourlyTake(r));
-    const avgHourlyRate =
-      hourlyRates.reduce((sum, h) => sum + h, 0) / hourlyRates.length;
+        // Hourly rate (2,080 working hours per year: 40 hrs × 52 weeks)
+        const hourlyRates = allReturns.map((r) => getNetIncome(r) / 2080);
+        const avgHourlyRate =
+            hourlyRates.reduce((sum, h) => sum + h, 0) / hourlyRates.length;
 
-    // Per-year values for sparklines (daily for display)
-    const dailyTakes = allReturns.map((r) => getDailyTake(r));
-    const incomePerYear = allReturns.map((r) => r.income.total);
-    const taxesPerYear = allReturns.map((r) => getTotalTax(r));
-    const netPerYear = allReturns.map((r) => getNetIncome(r));
+        // Per-year values for sparklines
+        const incomePerYear = allReturns.map((r) => r.income.total);
+        const taxesPerYear = allReturns.map((r) => getTotalTax(r));
+        const effectivePerYear = allReturns.map((r) => getEffectiveRate(r));
+        const netPerYear = allReturns.map((r) => getNetIncome(r));
 
-    return {
-      stats: [
-        { label: "Total Income", value: totalIncome, sparkline: incomePerYear },
-        { label: "Taxes Paid", value: totalTaxes, sparkline: taxesPerYear },
-        { label: "Net Income", value: netIncome, sparkline: netPerYear },
-      ],
-      avgHourlyRate,
-      dailySparkline: dailyTakes,
-    };
-  }, [returns, years]);
+        return {
+            income: { value: totalIncome, sparkline: incomePerYear },
+            taxes: { value: totalTaxes, sparkline: taxesPerYear },
+            effective: { value: avgEffectiveRate, sparkline: effectivePerYear },
+            net: { value: netIncome, sparkline: netPerYear },
+            avgHourlyRate,
+        };
+    }, [returns, years]);
 
-  if (!stats) {
-    return null;
-  }
+    if (!stats) {
+        return null;
+    }
 
-  const timeUnitValue = convertToTimeUnit(stats.avgHourlyRate, timeUnit);
-  const timeUnitLabel =
-    timeUnit === "daily" ? "Daily Take" : `${TIME_UNIT_LABELS[timeUnit]} Take`;
+    const timeUnitValue = convertToTimeUnit(stats.avgHourlyRate, timeUnit);
 
-  const yearRange =
-    years.length > 1
-      ? `${years[0]}–${years[years.length - 1]}`
-      : years[0]?.toString() ?? "";
+    return (
+        <div className="px-6 py-6 shrink-0 border-b border-(--color-border)">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                <div>
+                    <div className="text-xs text-(--color-text-muted) mb-1">
+                        Income
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <span className="text-2xl font-semibold tabular-nums tracking-tight">
+                            {formatCompact(stats.income.value)}
+                        </span>
+                        <Sparkline
+                            values={stats.income.sparkline}
+                            width={48}
+                            height={20}
+                            className="text-(--color-chart)"
+                        />
+                    </div>
+                </div>
 
-  return (
-    <div className="p-6 pb-0 font-mono flex-shrink-0">
-      <div className="border border-[var(--color-border)] grid grid-cols-4">
-        {stats.stats.map((stat, i) => (
-          <div
-            key={stat.label}
-            className={`p-4 ${i > 0 ? "border-l border-[var(--color-border)]" : ""}`}
-          >
-            <Sparkline
-              values={stat.sparkline}
-              width={80}
-              height={24}
-              className="text-[var(--color-muted)] mb-2"
-            />
-            <div className="text-2xl font-bold tabular-nums">
-              {formatCompact(stat.value)}
+                <div>
+                    <div className="text-xs text-(--color-text-muted) mb-1">
+                        Taxes
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <span className="text-2xl font-semibold tabular-nums tracking-tight">
+                            {formatCompact(stats.taxes.value)}
+                        </span>
+                        <Sparkline
+                            values={stats.taxes.sparkline}
+                            width={48}
+                            height={20}
+                            className="text-(--color-chart)"
+                        />
+                    </div>
+                </div>
+
+                <div>
+                    <div className="text-xs text-(--color-text-muted) mb-1">
+                        Net
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <span className="text-2xl font-semibold tabular-nums tracking-tight">
+                            {formatCompact(stats.net.value)}
+                        </span>
+                        <Sparkline
+                            values={stats.net.sparkline}
+                            width={48}
+                            height={20}
+                            className="text-(--color-chart)"
+                        />
+                    </div>
+                </div>
+
+                <div>
+                    <div className="flex items-center gap-1.5 mb-1">
+                        <Menu
+                            triggerVariant="inline"
+                            triggerClassName="text-xs"
+                            popupClassName="min-w-[130px] text-sm"
+                            sideOffset={6}
+                            trigger={
+                                <>
+                                    {TIME_UNIT_LABELS[timeUnit]}
+                                    <svg
+                                        width="10"
+                                        height="10"
+                                        viewBox="0 0 16 16"
+                                        fill="currentColor"
+                                        className="opacity-50"
+                                    >
+                                        <path
+                                            d="M4 6l4 4 4-4"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth="2"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                        />
+                                    </svg>
+                                </>
+                            }
+                        >
+                            {(
+                                ["daily", "hourly", "minute", "second"] as TimeUnit[]
+                            ).map((unit) => (
+                                <MenuItem
+                                    key={unit}
+                                    onClick={() => setTimeUnit(unit)}
+                                    selected={timeUnit === unit}
+                                >
+                                    {TIME_UNIT_LABELS[unit]}
+                                </MenuItem>
+                            ))}
+                        </Menu>
+                        <Tooltip content="Based on 2080hrs of work per year">
+                            <svg
+                                width="12"
+                                height="12"
+                                viewBox="0 0 16 16"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="1.5"
+                            >
+                                <circle cx="8" cy="8" r="6.5" />
+                                <path
+                                    d="M8 7.5V11M8 5.5V5"
+                                    strokeLinecap="round"
+                                />
+                            </svg>
+                        </Tooltip>
+                    </div>
+                    <div className="text-2xl font-semibold tabular-nums tracking-tight">
+                        {formatTimeUnitValueCompact(timeUnitValue, timeUnit)}
+                    </div>
+                </div>
             </div>
-            <div className="text-xs text-[var(--color-muted)] mt-1">
-              {stat.label}
-            </div>
-          </div>
-        ))}
-        <div className="p-4 border-l border-[var(--color-border)]">
-          <Sparkline
-            values={stats.dailySparkline}
-            width={80}
-            height={24}
-            className="text-[var(--color-muted)] mb-2"
-          />
-          <div className="text-2xl font-bold tabular-nums">
-            {formatTimeUnitValueCompact(timeUnitValue, timeUnit)}
-          </div>
-          <div className="text-xs text-[var(--color-muted)] mt-1 flex items-center gap-1">
-            <span>{timeUnitLabel}</span>
-            {timeUnit === "hourly" && (
-              <span
-                className="cursor-help"
-                title="Based on 2,080 working hours per year (40 hrs × 52 weeks)"
-              >
-                ?
-              </span>
-            )}
-          </div>
-          <div className="flex gap-0.5 mt-2">
-            {(["daily", "hourly", "minute", "second"] as TimeUnit[]).map(
-              (unit) => (
-                <button
-                  key={unit}
-                  onClick={() => setTimeUnit(unit)}
-                  className={`px-1.5 py-0.5 text-[10px] border transition-colors ${
-                    timeUnit === unit
-                      ? "border-[var(--color-foreground)] bg-[var(--color-foreground)] text-[var(--color-background)]"
-                      : "border-[var(--color-border)] text-[var(--color-muted)] hover:border-[var(--color-muted)]"
-                  }`}
-                >
-                  {unit.charAt(0).toUpperCase()}
-                </button>
-              )
-            )}
-          </div>
         </div>
-      </div>
-      <div className="text-right text-xs text-[var(--color-muted)] mt-1">
-        {yearRange}
-      </div>
-    </div>
-  );
+    );
 }

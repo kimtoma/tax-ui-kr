@@ -5,7 +5,7 @@ import {
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
 export interface ColumnMeta {
   align?: "left" | "right";
@@ -17,9 +17,30 @@ interface TableProps<TData> {
   data: TData[];
   columns: ColumnDef<TData, unknown>[];
   storageKey?: string;
+  getRowClassName?: (row: TData, index: number) => string;
+  isRowHoverDisabled?: (row: TData) => boolean;
 }
 
-export function Table<TData>({ data, columns, storageKey }: TableProps<TData>) {
+export function Table<TData>({ data, columns, storageKey, getRowClassName, isRowHoverDisabled }: TableProps<TData>) {
+  const [isScrolled, setIsScrolled] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const updateScrollState = useCallback(() => {
+    if (containerRef.current) {
+      setIsScrolled(containerRef.current.scrollLeft > 0);
+    }
+  }, []);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (container) {
+      container.addEventListener("scroll", updateScrollState);
+      // Check initial scroll state
+      updateScrollState();
+      return () => container.removeEventListener("scroll", updateScrollState);
+    }
+  }, [updateScrollState, data]); // Re-run when data changes
+
   const [columnSizing, setColumnSizing] = useState<ColumnSizingState>(() => {
     if (storageKey && typeof window !== "undefined") {
       const saved = localStorage.getItem(`${storageKey}-column-sizes`);
@@ -56,79 +77,97 @@ export function Table<TData>({ data, columns, storageKey }: TableProps<TData>) {
   });
 
   return (
-    <table className="w-full border-collapse" style={{ minWidth: "max-content" }}>
-      <thead className="sticky top-0 z-20">
-        {table.getHeaderGroups().map((headerGroup) => (
-          <tr
-            key={headerGroup.id}
-            className="border-b border-[var(--color-border)]"
-          >
-            {headerGroup.headers.map((header) => {
-              const meta = header.column.columnDef.meta as ColumnMeta | undefined;
-              const alignClass = meta?.align === "right" ? "text-right" : "text-left";
-              const borderClass = meta?.borderLeft ? "border-l border-[var(--color-border)]" : "";
-              const stickyClass = meta?.sticky
-                ? "sticky left-0 z-30 border-r border-[var(--color-border)] shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]"
-                : "";
+    <div ref={containerRef} className="overflow-auto w-full h-full [-webkit-overflow-scrolling:touch]">
+      <table className="w-full border-collapse" style={{ minWidth: "max-content" }}>
+        <thead className="sticky top-0 z-20">
+          {table.getHeaderGroups().map((headerGroup) => (
+            <tr key={headerGroup.id}>
+              {headerGroup.headers.map((header) => {
+                const meta = header.column.columnDef.meta as ColumnMeta | undefined;
+                const alignClass = meta?.align === "right" ? "text-right" : "text-left";
+                const stickyClass = meta?.sticky ? "sticky left-0 z-30" : "";
 
-              return (
-                <th
-                  key={header.id}
-                  colSpan={header.colSpan}
-                  className={`${alignClass} ${borderClass} ${stickyClass} py-2 px-2 font-bold relative bg-[var(--color-bg)]`}
-                  style={{
-                    width: header.getSize(),
-                  }}
-                >
-                  {header.isPlaceholder
-                  ? null
-                  : flexRender(
-                      header.column.columnDef.header,
-                      header.getContext()
+                const shadows = ["inset 0 -1px 0 var(--color-border)"];
+                if (meta?.sticky && isScrolled) {
+                  shadows.push("inset -1px 0 0 var(--color-border)");
+                }
+                if (meta?.borderLeft) {
+                  shadows.push("inset 1px 0 0 var(--color-border)");
+                }
+                const headerShadow = shadows.join(", ");
+
+                return (
+                  <th
+                    key={header.id}
+                    colSpan={header.colSpan}
+                    className={`${alignClass} ${stickyClass} py-2 px-4 text-xs text-(--color-text-muted) font-normal relative bg-(--color-bg)`}
+                    style={{
+                      width: header.getSize(),
+                      boxShadow: headerShadow,
+                    }}
+                  >
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(header.column.columnDef.header, header.getContext())}
+                    {header.column.getCanResize() && (
+                      <div
+                        onMouseDown={header.getResizeHandler()}
+                        onTouchStart={header.getResizeHandler()}
+                        className={`resizer ${header.column.getIsResizing() ? "isResizing" : ""}`}
+                      />
                     )}
-                  {header.column.getCanResize() && (
-                    <div
-                      onMouseDown={header.getResizeHandler()}
-                      onTouchStart={header.getResizeHandler()}
-                      className={`resizer ${header.column.getIsResizing() ? "isResizing" : ""}`}
-                    />
-                  )}
-                </th>
-              );
-            })}
-          </tr>
-        ))}
-      </thead>
-      <tbody>
-        {table.getRowModel().rows.map((row) => (
-          <tr key={row.id} className="group">
-            {row.getVisibleCells().map((cell) => {
-              const meta = cell.column.columnDef.meta as ColumnMeta | undefined;
-              const borderClass = meta?.borderLeft ? "border-l border-[var(--color-border)]" : "";
-              const stickyClass = meta?.sticky
-                ? "sticky left-0 z-10 border-r border-[var(--color-border)] shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)]"
-                : "";
-              const truncateClass = meta?.sticky ? "truncate max-w-[160px]" : "";
-              const hoverClass = meta?.sticky
-                ? "bg-[var(--color-bg)] group-hover:bg-[var(--color-row-hover)]"
-                : "group-hover:bg-[var(--color-row-hover)]";
+                  </th>
+                );
+              })}
+            </tr>
+          ))}
+        </thead>
+        <tbody>
+          {table.getRowModel().rows.map((row, index) => {
+            const customClassName = getRowClassName?.(row.original, index) ?? "";
+            const hoverDisabled = isRowHoverDisabled?.(row.original) ?? false;
+            const rowHoverClass = hoverDisabled ? "" : "hover:bg-(--color-row-hover)";
+            const noZebraClass = hoverDisabled ? "no-zebra" : "";
+            return (
+            <tr
+              key={row.id}
+              className={`group ${rowHoverClass} ${noZebraClass} ${customClassName}`}
+            >
+              {row.getVisibleCells().map((cell) => {
+                const meta = cell.column.columnDef.meta as ColumnMeta | undefined;
+                const stickyCellHover = hoverDisabled ? "" : "group-hover:bg-(--color-row-hover)";
+                const stickyClass = meta?.sticky
+                  ? `sticky left-0 z-10 sticky-cell ${stickyCellHover}`
+                  : "";
+                const truncateClass = meta?.sticky ? "truncate max-w-[160px]" : "";
 
-              return (
-                <td
-                  key={cell.id}
-                  className={`py-1 px-2 ${borderClass} ${stickyClass} ${truncateClass} ${hoverClass}`}
-                  style={{
-                    width: cell.column.getSize(),
-                  }}
-                >
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                </td>
-              );
-            })}
-          </tr>
-        ))}
-      </tbody>
-    </table>
+                const cellShadows: string[] = [];
+                if (meta?.sticky && isScrolled) {
+                  cellShadows.push("inset -1px 0 0 var(--color-border)");
+                }
+                if (meta?.borderLeft) {
+                  cellShadows.push("inset 1px 0 0 var(--color-border)");
+                }
+
+                return (
+                  <td
+                    key={cell.id}
+                    className={`py-2 px-4 text-sm ${stickyClass} ${truncateClass}`}
+                    style={{
+                      width: cell.column.getSize(),
+                      ...(cellShadows.length > 0 ? { boxShadow: cellShadows.join(", ") } : {}),
+                    }}
+                  >
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </td>
+                );
+              })}
+            </tr>
+          );
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
