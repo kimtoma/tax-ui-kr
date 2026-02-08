@@ -1,6 +1,9 @@
 <img width="1280" height="640" alt="tax-ui-github-og" src="https://github.com/user-attachments/assets/cdeb1215-ba79-4c3a-b108-7798e5cd47a6" />
 
-# Tax UI
+# Tax UI KR
+
+@brianlovin의 tax-ui 프로젝트를 folk해서 한국에 맞게 수정한 버전입니다.
+https://tax-ui.brianlovin.com/
 
 한국 연말정산 서류를 시각화하고, 소득공제/세액공제 내역을 한눈에 파악할 수 있는 웹 앱입니다. Claude와 대화하며 연말정산 내역을 분석할 수 있습니다.
 
@@ -8,7 +11,7 @@
 
 ### 1. Bun 설치
 
-Tax UI는 [Bun](https://bun.sh) 런타임을 사용합니다.
+Tax UI KR은 [Bun](https://bun.sh) 런타임을 사용합니다.
 
 ```bash
 curl -fsSL https://bun.sh/install | bash
