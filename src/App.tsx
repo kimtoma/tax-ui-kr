@@ -30,14 +30,14 @@ function isClientDemo(): boolean {
   return host !== "localhost" && host !== "127.0.0.1";
 }
 
-const DEMO_RESPONSE = `This is a demo with sample data. To chat about your own tax returns, clone and run [Tax UI](https://github.com/brianlovin/tax-ui) locally:
+const DEMO_RESPONSE = `샘플 데이터로 구성된 데모입니다. 자신의 연말정산 서류로 채팅하려면 [Tax UI](https://github.com/brianlovin/tax-ui)를 로컬에서 클론하여 실행하세요:
 \`\`\`
 git clone https://github.com/brianlovin/tax-ui
 cd tax-ui
 bun install
 bun run dev
 \`\`\`
-You'll need [Bun](https://bun.sh) and an [Anthropic API key](https://console.anthropic.com).`;
+[Bun](https://bun.sh)과 [Anthropic API 키](https://console.anthropic.com)가 필요합니다.`;
 
 function loadChatMessages(): ChatMessage[] {
   try {
@@ -112,7 +112,7 @@ function buildNavItems(returns: Record<number, TaxReturn>): NavItem[] {
     .map(Number)
     .sort((a, b) => b - a);
   const items: NavItem[] = [];
-  if (years.length > 1) items.push({ id: "summary", label: "All time" });
+  if (years.length > 1) items.push({ id: "summary", label: "전체" });
   items.push(...years.map((y) => ({ id: String(y), label: String(y) })));
   return items;
 }
@@ -400,8 +400,8 @@ export function App() {
     if (successfulUploads > 0) {
       const autoMessage =
         files.length === 1
-          ? "Help me understand my year"
-          : "Help me understand my history of income and taxes";
+          ? "올해 연말정산 내역을 분석해줘"
+          : "소득과 세금 변화 추이를 분석해줘";
       setPendingAutoMessage(autoMessage);
       setIsChatOpen(true);
     }
@@ -589,7 +589,7 @@ export function App() {
   if (state.isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <span className="text-sm text-(--color-text-muted)">Loading...</span>
+        <span className="text-sm text-(--color-text-muted)">로딩 중...</span>
       </div>
     );
   }
@@ -768,8 +768,8 @@ export function App() {
     if (uploadedYears.length > 0) {
       const autoMessage =
         files.length === 1
-          ? "Help me understand my year"
-          : "Help me understand my history of income and taxes";
+          ? "올해 연말정산 내역을 분석해줘"
+          : "소득과 세금 변화 추이를 분석해줘";
       setPendingAutoMessage(autoMessage);
       setIsChatOpen(true);
     }
@@ -863,11 +863,11 @@ export function App() {
             <div className="text-lg mb-2 flex flex-col items-start justify-start text-left">
               <span className="font-semibold text-(--color-brand)">Tax UI</span>
               <span className="font-medium">
-                Visualize and chat with your tax returns
+                연말정산 서류를 시각화하고 대화하세요
               </span>
             </div>
             <span className="bg-(--color-brand) text-white self-start text-neutral-900 text-base font-semibold px-3 py-1.5 rounded-lg">
-              Get started
+              시작하기
             </span>
           </button>
         </>

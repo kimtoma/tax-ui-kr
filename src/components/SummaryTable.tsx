@@ -57,22 +57,22 @@ function collectRows(returns: Record<number, TaxReturn>): SummaryRow[] {
   };
 
   // Monthly Breakdown
-  addHeader("Monthly Breakdown");
-  addRow("Monthly Breakdown", "Gross monthly", (data) =>
-    Math.round(data.income.total / 12),
+  addHeader("월별 내역");
+  addRow("월별 내역", "월 총소득", (data) =>
+    Math.round(data.income.totalSalary / 12),
     { showChange: true }
   );
-  addRow("Monthly Breakdown", "Net monthly (after tax)", (data) =>
-    Math.round((data.income.total - getTotalTax(data)) / 12),
+  addRow("월별 내역", "월 순소득 (세후)", (data) =>
+    Math.round((data.income.totalSalary - getTotalTax(data)) / 12),
     { showChange: true }
   );
-  addRow("Monthly Breakdown", "Daily take-home", (data) =>
-    Math.round((data.income.total - getTotalTax(data)) / 12 / 30),
+  addRow("월별 내역", "일 실수령", (data) =>
+    Math.round((data.income.totalSalary - getTotalTax(data)) / 12 / 30),
     { showChange: true }
   );
 
   // Income items
-  addHeader("Income");
+  addHeader("소득");
   const incomeLabels = new Set<string>();
   for (const r of allReturns) {
     for (const item of r.income.items) {
@@ -80,142 +80,70 @@ function collectRows(returns: Record<number, TaxReturn>): SummaryRow[] {
     }
   }
   for (const label of incomeLabels) {
-    addRow("Income", label, (data) =>
+    addRow("소득", label, (data) =>
       data.income.items.find((i) => i.label === label)?.amount
     );
   }
-  addRow("Income", "Total income", (data) => data.income.total, { showChange: true });
+  addRow("소득", "총급여", (data) => data.income.totalSalary, { showChange: true });
 
-  // Federal
-  addHeader("Federal");
-  addRow("Federal", "Adjusted gross income", (data) => data.federal.agi, { showChange: true });
+  // 근로소득
+  addHeader("근로소득");
+  addRow("근로소득", "근로소득공제", (data) => data.employmentDeduction);
+  addRow("근로소득", "근로소득금액", (data) => data.employmentIncome, { showChange: true });
 
-  const federalDeductionLabels = new Set<string>();
+  // 소득공제
+  addHeader("소득공제");
+  const deductionLabels = new Set<string>();
   for (const r of allReturns) {
-    for (const item of r.federal.deductions) {
-      federalDeductionLabels.add(item.label);
+    for (const item of r.incomeDeductions.items) {
+      deductionLabels.add(item.label);
     }
   }
-  for (const label of federalDeductionLabels) {
-    addRow("Federal", label, (data) =>
-      data.federal.deductions.find((i) => i.label === label)?.amount
+  for (const label of deductionLabels) {
+    addRow("소득공제", label, (data) =>
+      data.incomeDeductions.items.find((i) => i.label === label)?.amount,
+      { invertPolarity: true }
     );
   }
+  addRow("소득공제", "소득공제 합계", (data) => data.incomeDeductions.total, { invertPolarity: true });
 
-  addRow("Federal", "Taxable income", (data) => data.federal.taxableIncome, { showChange: true });
-  addRow("Federal", "Tax", (data) => data.federal.tax, { invertPolarity: true, showChange: true });
+  // 세액 계산
+  addHeader("세액 계산");
+  addRow("세액 계산", "과세표준", (data) => data.taxBase, { showChange: true });
+  addRow("세액 계산", "산출세액", (data) => data.calculatedTax, { invertPolarity: true, showChange: true });
 
-  const federalCreditLabels = new Set<string>();
+  // 세액공제
+  addHeader("세액공제");
+  const creditLabels = new Set<string>();
   for (const r of allReturns) {
-    for (const item of r.federal.credits) {
-      federalCreditLabels.add(item.label);
+    for (const item of r.taxCredits.items) {
+      creditLabels.add(item.label);
     }
   }
-  for (const label of federalCreditLabels) {
-    addRow("Federal", label, (data) =>
-      data.federal.credits.find((i) => i.label === label)?.amount
+  for (const label of creditLabels) {
+    addRow("세액공제", label, (data) =>
+      data.taxCredits.items.find((i) => i.label === label)?.amount
     );
   }
+  addRow("세액공제", "세액공제 합계", (data) => data.taxCredits.total);
 
-  const federalPaymentLabels = new Set<string>();
-  for (const r of allReturns) {
-    for (const item of r.federal.payments) {
-      federalPaymentLabels.add(item.label);
-    }
-  }
-  for (const label of federalPaymentLabels) {
-    addRow("Federal", label, (data) =>
-      data.federal.payments.find((i) => i.label === label)?.amount
-    );
-  }
+  // 결정세액
+  addHeader("결정세액");
+  addRow("결정세액", "결정세액", (data) => data.determinedTax, { invertPolarity: true, showChange: true });
+  addRow("결정세액", "지방소득세", (data) => data.localIncomeTax, { invertPolarity: true });
+  addRow("결정세액", "총 세금", (data) => getTotalTax(data), { invertPolarity: true, showChange: true });
 
-  addRow("Federal", "Refund/Owed", (data) => data.federal.refundOrOwed, { showChange: true });
-
-  // States
-  const allStates = new Set<string>();
-  for (const r of allReturns) {
-    for (const s of r.states) {
-      allStates.add(s.name);
-    }
-  }
-
-  for (const stateName of allStates) {
-    const getState = (data: TaxReturn) =>
-      data.states.find((s) => s.name === stateName);
-
-    addHeader(stateName);
-    addRow(stateName, "Adjusted gross income", (data) => getState(data)?.agi, { showChange: true });
-
-    const stateDeductionLabels = new Set<string>();
-    for (const r of allReturns) {
-      const state = r.states.find((s) => s.name === stateName);
-      if (state) {
-        for (const item of state.deductions) {
-          stateDeductionLabels.add(item.label);
-        }
-      }
-    }
-    for (const label of stateDeductionLabels) {
-      addRow(stateName, label, (data) =>
-        getState(data)?.deductions.find((i) => i.label === label)?.amount
-      );
-    }
-
-    addRow(stateName, "Taxable income", (data) => getState(data)?.taxableIncome, { showChange: true });
-    addRow(stateName, "Tax", (data) => getState(data)?.tax, { invertPolarity: true, showChange: true });
-
-    const stateAdjustmentLabels = new Set<string>();
-    for (const r of allReturns) {
-      const state = r.states.find((s) => s.name === stateName);
-      if (state) {
-        for (const item of state.adjustments) {
-          stateAdjustmentLabels.add(item.label);
-        }
-      }
-    }
-    for (const label of stateAdjustmentLabels) {
-      addRow(stateName, label, (data) =>
-        getState(data)?.adjustments.find((i) => i.label === label)?.amount
-      );
-    }
-
-    const statePaymentLabels = new Set<string>();
-    for (const r of allReturns) {
-      const state = r.states.find((s) => s.name === stateName);
-      if (state) {
-        for (const item of state.payments) {
-          statePaymentLabels.add(item.label);
-        }
-      }
-    }
-    for (const label of statePaymentLabels) {
-      addRow(stateName, label, (data) =>
-        getState(data)?.payments.find((i) => i.label === label)?.amount
-      );
-    }
-
-    addRow(stateName, "Refund/Owed", (data) => getState(data)?.refundOrOwed, { showChange: true });
-  }
-
-  // Net Position
-  addHeader("Net Position");
-  addRow("Net Position", "Federal", (data) => data.summary.federalAmount, { showChange: true });
-  for (const stateName of allStates) {
-    addRow("Net Position", stateName, (data) =>
-      data.summary.stateAmounts.find((s) => s.state === stateName)?.amount,
-      { showChange: true }
-    );
-  }
-  addRow("Net Position", "Net total", (data) => data.summary.netPosition, { showChange: true });
+  // 정산
+  addHeader("정산");
+  addRow("정산", "기납부 소득세", (data) => data.taxAlreadyPaid.incomeTax);
+  addRow("정산", "기납부 지방세", (data) => data.taxAlreadyPaid.localTax);
+  addRow("정산", "기납부세액 합계", (data) => data.taxAlreadyPaid.total);
+  addRow("정산", "차감징수세액", (data) => data.settlement.total, { showChange: true });
 
   // Rates
-  addHeader("Rates");
-  addRow("Rates", "Federal marginal", (data) => data.rates?.federal.marginal, { invertPolarity: true });
-  addRow("Rates", "Federal effective", (data) => data.rates?.federal.effective, { invertPolarity: true });
-  addRow("Rates", "State marginal", (data) => data.rates?.state?.marginal, { invertPolarity: true });
-  addRow("Rates", "State effective", (data) => data.rates?.state?.effective, { invertPolarity: true });
-  addRow("Rates", "Combined marginal", (data) => data.rates?.combined?.marginal, { invertPolarity: true });
-  addRow("Rates", "Combined effective", (data) => data.rates?.combined?.effective, { invertPolarity: true });
+  addHeader("세율");
+  addRow("세율", "한계세율", (data) => data.rates?.marginal, { invertPolarity: true });
+  addRow("세율", "실효세율", (data) => data.rates?.effective, { invertPolarity: true });
 
   return rows;
 }
@@ -239,7 +167,7 @@ export function SummaryTable({ returns }: Props) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const cols: ColumnDef<SummaryRow, any>[] = [
       columnHelper.accessor("label", {
-        header: "Line Item",
+        header: "항목",
         cell: (info) => {
           const row = info.row.original;
           if (row.isHeader) {
@@ -282,7 +210,7 @@ export function SummaryTable({ returns }: Props) {
             }
 
             const value = info.getValue() as number | undefined;
-            const isRate = row.category === "Rates";
+            const isRate = row.category === "세율";
             const prevValue = prevYear !== undefined ? row.values[prevYear] : undefined;
 
             const isDeduction = row.label.startsWith("−") || row.label.startsWith("–") || row.label.startsWith("- ");
@@ -319,7 +247,7 @@ export function SummaryTable({ returns }: Props) {
   }, [years]);
 
   const getRowClassName = (row: SummaryRow) => {
-    if (row.isHeader && row.category !== "Monthly Breakdown") {
+    if (row.isHeader && row.category !== "월별 내역") {
       return "border-t border-(--color-border)";
     }
     return "";

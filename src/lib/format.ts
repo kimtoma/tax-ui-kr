@@ -1,12 +1,11 @@
-const currencyFormatter = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
+const currencyFormatter = new Intl.NumberFormat("ko-KR", {
+  style: "decimal",
   minimumFractionDigits: 0,
   maximumFractionDigits: 0,
 });
 
 export function formatCurrency(amount: number, showSign = false): string {
-  const formatted = currencyFormatter.format(Math.abs(amount));
+  const formatted = currencyFormatter.format(Math.abs(amount)) + "원";
   if (showSign) {
     return amount >= 0 ? `+${formatted}` : `-${formatted}`;
   }
@@ -27,15 +26,15 @@ export function formatCompact(amount: number): string {
   const abs = Math.abs(amount);
   const sign = amount < 0 ? "-" : "";
 
-  if (abs >= 1_000_000) {
-    const value = abs / 1_000_000;
-    return `${sign}$${value.toFixed(value >= 10 ? 1 : 2)}M`;
+  if (abs >= 100_000_000) {
+    const value = abs / 100_000_000;
+    return `${sign}${value.toFixed(value >= 10 ? 0 : 1)}억`;
   }
-  if (abs >= 1_000) {
-    const value = abs / 1_000;
-    return `${sign}$${value.toFixed(value >= 100 ? 0 : 0)}K`;
+  if (abs >= 10_000) {
+    const value = abs / 10_000;
+    return `${sign}${value.toFixed(value >= 1000 ? 0 : 0)}만`;
   }
-  return `${sign}$${abs.toFixed(0)}`;
+  return `${sign}${abs.toFixed(0)}원`;
 }
 
 export function formatCurrencyCents(amount: number, suffix?: string): string {
@@ -44,12 +43,11 @@ export function formatCurrencyCents(amount: number, suffix?: string): string {
 
   let value: string;
   if (abs >= 0.01) {
-    value = abs.toFixed(2);
+    value = abs.toFixed(0);
   } else {
-    // For sub-cent values, use 3 decimals but strip trailing zeros
-    value = parseFloat(abs.toFixed(3)).toString();
+    value = parseFloat(abs.toFixed(1)).toString();
   }
 
-  const formatted = `${sign}$${value}`;
+  const formatted = `${sign}${value}원`;
   return suffix ? `${formatted}/${suffix}` : formatted;
 }

@@ -2,20 +2,17 @@ import Anthropic from "@anthropic-ai/sdk";
 import { PDFDocument } from "pdf-lib";
 
 export type FormType =
-  | "1040_main"
-  | "schedule_1"
-  | "schedule_2"
-  | "schedule_3"
-  | "schedule_a"
-  | "schedule_b"
-  | "schedule_c"
-  | "schedule_d"
-  | "schedule_e"
-  | "k1_summary"
-  | "k1_detail"
-  | "state_main"
-  | "state_schedule"
-  | "worksheet"
+  | "withholding_receipt"
+  | "income_detail"
+  | "deduction_detail"
+  | "credit_detail"
+  | "settlement_summary"
+  | "insurance_detail"
+  | "medical_detail"
+  | "education_detail"
+  | "donation_detail"
+  | "card_usage_detail"
+  | "housing_detail"
   | "supporting_doc"
   | "other";
 
@@ -24,38 +21,35 @@ export interface PageClassification {
   formType: FormType;
 }
 
-const CLASSIFICATION_PROMPT = `Classify each page of this tax return PDF. For each page, identify the form type.
+const CLASSIFICATION_PROMPT = `이 연말정산 PDF의 각 페이지를 분류하세요. 각 페이지의 서류 유형을 식별하세요.
 
-Classification categories:
-- 1040_main: Form 1040 pages 1-2 (the main federal return)
-- schedule_1: Schedule 1 - Additional Income and Adjustments
-- schedule_2: Schedule 2 - Additional Taxes
-- schedule_3: Schedule 3 - Additional Credits and Payments
-- schedule_a: Schedule A - Itemized Deductions
-- schedule_b: Schedule B - Interest and Dividends
-- schedule_c: Schedule C - Business Income
-- schedule_d: Schedule D - Capital Gains and Losses
-- schedule_e: Schedule E - Supplemental Income (rentals, royalties, partnerships, S corps)
-- k1_summary: Schedule K-1 summary/first page (contains income amounts)
-- k1_detail: Schedule K-1 supporting pages, instructions, or continuation pages
-- state_main: State tax return main pages (Form 540, IT-201, etc.)
-- state_schedule: State return supporting schedules
-- worksheet: Calculation worksheets (tax computation, AMT, etc.)
-- supporting_doc: W-2, 1099, or other source document copies
-- other: Cover pages, signature pages, preparer notes, engagement letters
+분류 카테고리:
+- withholding_receipt: 근로소득 원천징수영수증 (소득, 공제, 세액 요약)
+- income_detail: 급여 명세서, 소득 상세 내역
+- deduction_detail: 소득공제 상세 (인적공제, 연금, 보험료 등)
+- credit_detail: 세액공제 상세 (의료비, 교육비, 기부금, 월세 등)
+- settlement_summary: 연말정산 결과 요약, 차감징수세액 내역
+- insurance_detail: 보험료 납입 증명서
+- medical_detail: 의료비 지급 명세서
+- education_detail: 교육비 납입 증명서
+- donation_detail: 기부금 영수증
+- card_usage_detail: 신용카드/현금영수증 사용 내역
+- housing_detail: 주택자금/월세 관련 서류
+- supporting_doc: 원천징수 영수증 사본, 증빙 서류
+- other: 표지, 안내문, 서명 페이지 등
 
-Respond with a JSON array where each element has:
-- "page": page number (1-indexed)
-- "type": one of the classification categories above
+JSON 배열로 응답하세요. 각 요소는:
+- "page": 페이지 번호 (1부터 시작)
+- "type": 위 분류 카테고리 중 하나
 
-Example response format:
+응답 형식 예시:
 [
-  {"page": 1, "type": "1040_main"},
-  {"page": 2, "type": "1040_main"},
-  {"page": 3, "type": "schedule_1"}
+  {"page": 1, "type": "withholding_receipt"},
+  {"page": 2, "type": "withholding_receipt"},
+  {"page": 3, "type": "deduction_detail"}
 ]
 
-Classify ALL pages in the document.`;
+문서의 모든 페이지를 분류하세요.`;
 
 export async function classifyPages(
   pdfBase64: string,

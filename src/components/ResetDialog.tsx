@@ -19,7 +19,7 @@ export function ResetDialog({ isOpen, onClose, onReset }: Props) {
       await onReset();
       handleClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to reset");
+      setError(err instanceof Error ? err.message : "초기화에 실패했습니다");
     } finally {
       setIsResetting(false);
     }
@@ -31,11 +31,11 @@ export function ResetDialog({ isOpen, onClose, onReset }: Props) {
   }
 
   return (
-    <Dialog open={isOpen} onClose={handleClose} title="Reset" size="sm">
+    <Dialog open={isOpen} onClose={handleClose} title="초기화" size="sm">
       <div className="space-y-4">
         <p className="text-sm text-(--color-text-muted)">
-          Clear all stored data and start fresh. This will remove your API key,
-          tax returns, and chat history.
+          모든 저장된 데이터를 삭제하고 새로 시작합니다. API 키, 연말정산 서류,
+          채팅 기록이 모두 삭제됩니다.
         </p>
         <Button
           variant="danger-outline"
@@ -43,7 +43,7 @@ export function ResetDialog({ isOpen, onClose, onReset }: Props) {
           onClick={handleReset}
           disabled={isResetting}
         >
-          {isResetting ? "Resetting" : "Reset data"}
+          {isResetting ? "초기화 중" : "데이터 초기화"}
         </Button>
       </div>
 

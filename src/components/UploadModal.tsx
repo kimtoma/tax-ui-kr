@@ -62,7 +62,7 @@ export function UploadModal({
         if (droppedFiles.length > 0) {
             setFiles((prev) => [...prev, ...droppedFiles]);
         } else {
-            setError("Please upload PDF files");
+            setError("PDF 파일을 업로드해주세요");
         }
     }
 
@@ -74,14 +74,14 @@ export function UploadModal({
         if (selectedFiles.length > 0) {
             setFiles((prev) => [...prev, ...selectedFiles]);
         } else if (e.target.files?.length) {
-            setError("Please upload PDF files");
+            setError("PDF 파일을 업로드해주세요");
         }
     }
 
     async function handleSubmit() {
         if (configureKeyOnly) {
             if (!apiKey.trim()) {
-                setError("Please enter your API key");
+                setError("API 키를 입력해주세요");
                 return;
             }
             setIsLoading(true);
@@ -94,7 +94,7 @@ export function UploadModal({
                 setError(
                     err instanceof Error
                         ? err.message
-                        : "Failed to save API key",
+                        : "API 키 저장에 실패했습니다",
                 );
             } finally {
                 setIsLoading(false);
@@ -103,11 +103,11 @@ export function UploadModal({
         }
 
         if (needsApiKey) {
-            setError("Please enter your API key");
+            setError("API 키를 입력해주세요");
             return;
         }
         if (activeFiles.length === 0) {
-            setError("Please select at least one PDF file");
+            setError("최소 하나의 PDF 파일을 선택해주세요");
             return;
         }
 
@@ -121,7 +121,7 @@ export function UploadModal({
             onClose();
         } catch (err) {
             setError(
-                err instanceof Error ? err.message : "Failed to process PDF",
+                err instanceof Error ? err.message : "PDF 처리에 실패했습니다",
             );
         } finally {
             setIsLoading(false);
@@ -138,10 +138,10 @@ export function UploadModal({
     }
 
     const title = configureKeyOnly
-        ? "API Key"
+        ? "API 키"
         : pendingFiles.length > 0
-          ? "Enter API Key"
-          : "Upload Tax Return";
+          ? "API 키 입력"
+          : "연말정산 서류 업로드";
 
     return (
         <Dialog
@@ -154,8 +154,7 @@ export function UploadModal({
             {pendingFiles.length > 0 && (
                 <div className="mb-4 text-sm">
                     <div className="text-(--color-text-muted)">
-                        {pendingFiles.length} file
-                        {pendingFiles.length > 1 ? "s" : ""} selected
+                        {pendingFiles.length}개 파일 선택됨
                     </div>
                     <div className="text-xs text-(--color-text-muted) mt-1">
                         {pendingFiles.map((f, i) => (
@@ -171,7 +170,7 @@ export function UploadModal({
             {(!hasStoredKey || configureKeyOnly) && (
                 <div className="mb-4">
                     <label className="block text-xs text-(--color-text-muted) mb-1.5">
-                        Anthropic API Key
+                        Anthropic API 키
                     </label>
                     <Input
                         type="password"
@@ -185,7 +184,7 @@ export function UploadModal({
                         className="w-full px-3 py-2 border border-(--color-border) bg-(--color-bg-muted) rounded-lg text-sm placeholder:text-(--color-text-muted) focus:outline-none focus:border-(--color-text-muted) disabled:opacity-50"
                     />
                     <p className="text-xs text-(--color-text-muted) mt-1.5">
-                        Saved locally to .env file
+                        로컬 .env 파일에 저장됩니다
                     </p>
                 </div>
             )}
@@ -219,8 +218,7 @@ export function UploadModal({
                     {files.length > 0 ? (
                         <div>
                             <div>
-                                {files.length} file
-                                {files.length > 1 ? "s" : ""} selected
+                                {files.length}개 파일 선택됨
                             </div>
                             <div className="text-xs text-(--color-text-muted) mt-1">
                                 {files.map((f, i) => (
@@ -232,7 +230,7 @@ export function UploadModal({
                         </div>
                     ) : (
                         <div className="text-(--color-text-muted)">
-                            Drop PDF files here or click to browse
+                            PDF 파일을 여기에 놓거나 클릭하여 선택
                         </div>
                     )}
                 </div>
@@ -248,8 +246,8 @@ export function UploadModal({
             {/* Privacy note */}
             {!configureKeyOnly && (
                 <div className="mt-4 text-xs text-(--color-text-muted)">
-                    Your tax return is sent directly to Anthropic's API. Data
-                    stored locally.
+                    연말정산 서류는 Anthropic API로 직접 전송됩니다. 데이터는
+                    로컬에 저장됩니다.
                 </div>
             )}
 
@@ -266,11 +264,11 @@ export function UploadModal({
             >
                 {isLoading
                     ? configureKeyOnly
-                        ? "Saving..."
-                        : "Processing..."
+                        ? "저장 중..."
+                        : "처리 중..."
                     : configureKeyOnly
-                      ? "Save API key"
-                      : `Parse ${activeFiles.length > 1 ? `${activeFiles.length} returns` : "tax return"}`}
+                      ? "API 키 저장"
+                      : `연말정산 서류 ${activeFiles.length > 1 ? `${activeFiles.length}개 ` : ""}처리`}
             </Button>
         </Dialog>
     );

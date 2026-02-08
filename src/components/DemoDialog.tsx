@@ -13,7 +13,7 @@ export function DemoDialog({ isOpen, onClose, skipOpenAnimation }: Props) {
       open={isOpen}
       onClose={onClose}
       title="Tax UI"
-      description="This is a demo with sample data. To use Tax UI with your own tax returns, run it locally on your computer."
+      description="샘플 데이터로 구성된 데모입니다. 자신의 연말정산 서류로 사용하려면 로컬에서 실행하세요."
       size="lg"
       fullScreenMobile
       autoFocusClose
@@ -22,9 +22,9 @@ export function DemoDialog({ isOpen, onClose, skipOpenAnimation }: Props) {
     >
       <div className="space-y-4">
         <div>
-          <h3 className="text-sm font-medium mb-2">Run locally</h3>
+          <h3 className="text-sm font-medium mb-2">로컬에서 실행</h3>
           <div className="bg-(--color-bg-muted) rounded-lg p-3 font-mono text-sm">
-            <div className="text-(--color-text-muted)"># Clone and run</div>
+            <div className="text-(--color-text-muted)"># 클론 후 실행</div>
             <div>git clone https://github.com/brianlovin/tax-ui</div>
             <div>cd tax-ui</div>
             <div>bun install</div>
@@ -32,7 +32,7 @@ export function DemoDialog({ isOpen, onClose, skipOpenAnimation }: Props) {
           </div>
         </div>
         <p className="text-xs text-(--color-text-muted)">
-          Requires{" "}
+          필요 사항:{" "}
           <a
             href="https://bun.sh"
             target="_blank"
@@ -41,14 +41,14 @@ export function DemoDialog({ isOpen, onClose, skipOpenAnimation }: Props) {
           >
             Bun
           </a>{" "}
-          and an{" "}
+          및{" "}
           <a
             href="https://console.anthropic.com/settings/keys"
             target="_blank"
             rel="noopener noreferrer"
             className="underline hover:text-(--color-text)"
           >
-            Anthropic API key
+            Anthropic API 키
           </a>
         </p>
       </div>

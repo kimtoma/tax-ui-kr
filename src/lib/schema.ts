@@ -10,54 +10,43 @@ const Dependent = z.object({
   relationship: z.string(),
 });
 
-const StateReturn = z.object({
-  name: z.string(),
-  agi: z.number(),
-  deductions: z.array(LabeledAmount),
-  taxableIncome: z.number(),
-  tax: z.number(),
-  adjustments: z.array(LabeledAmount),
-  payments: z.array(LabeledAmount),
-  refundOrOwed: z.number(),
-});
-
-const TaxRates = z.object({
-  federal: z.object({ marginal: z.number(), effective: z.number() }),
-  state: z.object({ marginal: z.number(), effective: z.number() }).optional(),
-  combined: z.object({ marginal: z.number(), effective: z.number() }).optional(),
-});
-
 export const TaxReturnSchema = z.object({
   year: z.number(),
   name: z.string(),
-  filingStatus: z.enum([
-    "single",
-    "married_filing_jointly",
-    "married_filing_separately",
-    "head_of_household",
-    "qualifying_surviving_spouse",
-  ]),
+  householdStatus: z.enum(["세대주", "세대원"]),
   dependents: z.array(Dependent),
   income: z.object({
     items: z.array(LabeledAmount),
+    totalSalary: z.number(),
+  }),
+  employmentDeduction: z.number(),
+  employmentIncome: z.number(),
+  incomeDeductions: z.object({
+    items: z.array(LabeledAmount),
     total: z.number(),
   }),
-  federal: z.object({
-    agi: z.number(),
-    deductions: z.array(LabeledAmount),
-    taxableIncome: z.number(),
-    tax: z.number(),
-    credits: z.array(LabeledAmount),
-    payments: z.array(LabeledAmount),
-    refundOrOwed: z.number(),
+  taxBase: z.number(),
+  calculatedTax: z.number(),
+  taxCredits: z.object({
+    items: z.array(LabeledAmount),
+    total: z.number(),
   }),
-  states: z.array(StateReturn),
-  summary: z.object({
-    federalAmount: z.number(),
-    stateAmounts: z.array(z.object({ state: z.string(), amount: z.number() })),
-    netPosition: z.number(),
+  determinedTax: z.number(),
+  localIncomeTax: z.number(),
+  taxAlreadyPaid: z.object({
+    incomeTax: z.number(),
+    localTax: z.number(),
+    total: z.number(),
   }),
-  rates: TaxRates.optional(),
+  settlement: z.object({
+    incomeTax: z.number(),
+    localTax: z.number(),
+    total: z.number(),
+  }),
+  rates: z.object({
+    marginal: z.number(),
+    effective: z.number(),
+  }).optional(),
 });
 
 export type TaxReturn = z.infer<typeof TaxReturnSchema>;

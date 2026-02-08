@@ -32,7 +32,7 @@ export function SettingsModal({
       setApiKey("");
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save API key");
+      setError(err instanceof Error ? err.message : "API 키 저장에 실패했습니다");
     } finally {
       setIsSaving(false);
     }
@@ -45,7 +45,7 @@ export function SettingsModal({
       await onClearData();
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to clear data");
+      setError(err instanceof Error ? err.message : "데이터 삭제에 실패했습니다");
     } finally {
       setIsClearing(false);
     }
@@ -58,24 +58,24 @@ export function SettingsModal({
   }
 
   return (
-    <Dialog open={isOpen} onClose={handleClose} title="Settings">
+    <Dialog open={isOpen} onClose={handleClose} title="설정">
       <div className="space-y-6">
         {/* API Key Section */}
         <div>
           <label className="block text-sm font-medium mb-2">
-            Anthropic API Key
+            Anthropic API 키
           </label>
           {hasApiKey ? (
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm text-(--color-text-muted)">
                 <span className="inline-block w-2 h-2 rounded-full bg-green-500"></span>
-                API key configured
+                API 키 설정됨
               </div>
               <Input
                 type="password"
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
-                placeholder="Enter new key to update..."
+                placeholder="새 키를 입력하여 업데이트..."
                 autoComplete="off"
                 data-1p-ignore
                 data-lpignore="true"
@@ -101,7 +101,7 @@ export function SettingsModal({
               size="sm"
               className="mt-2"
             >
-              {isSaving ? "Saving..." : "Save API key"}
+              {isSaving ? "저장 중..." : "API 키 저장"}
             </Button>
           )}
         </div>
@@ -109,7 +109,7 @@ export function SettingsModal({
         {/* Clear Data Section */}
         <div className="pt-4 border-t border-(--color-border)">
           <label className="block text-sm font-medium mb-2">
-            Data Management
+            데이터 관리
           </label>
           <Button
             variant="danger-outline"
@@ -117,7 +117,7 @@ export function SettingsModal({
             onClick={handleClearData}
             disabled={isClearing}
           >
-            {isClearing ? "Resetting" : "Reset data"}
+            {isClearing ? "초기화 중" : "데이터 초기화"}
           </Button>
         </div>
 

@@ -1,37 +1,45 @@
-export const EXTRACTION_PROMPT = `Extract all tax data from this tax return PDF.
+export const EXTRACTION_PROMPT = `이 연말정산 PDF에서 모든 세금 데이터를 추출하세요.
 
-LABEL NORMALIZATION - Use these EXACT labels:
+라벨 정규화 - 다음 라벨을 정확히 사용하세요:
 
-Income items:
-- "W-2 wages" (for wages, salaries, tips)
-- "Interest income"
-- "Dividend income"
-- "Qualified dividends"
-- "Capital gains/losses"
-- "IRA distributions"
-- "Pension/annuity"
-- "Social Security"
-- "Business income"
-- "Rental income"
-- "K-1 income" (combined partnership, S-corp, estate/trust income from K-1s)
-- "Farm income"
-- "Unemployment compensation"
-- "Gambling income"
-- "Alimony received"
-- "Royalty income"
-- "Other income"
+소득 항목:
+- "급여" (기본급, 상여금 포함)
+- "상여금"
+- "인정상여"
+- "주식매수선택권 행사이익"
+- "비과세소득"
+- "기타소득"
 
-Deductions:
-- "− Standard deduction" or "− Itemized deductions"
-- "− SALT (capped)"
-- "− Mortgage interest"
-- "− Charitable contributions"
-- "− Medical expenses"
+소득공제 항목:
+- "국민연금"
+- "건강보험"
+- "고용보험"
+- "주택자금공제"
+- "주택마련저축"
+- "신용카드 등 사용금액"
+- "기부금"
+- "개인연금저축"
+- "소기업·소상공인 공제부금"
+- "인적공제"
+- "기본공제"
+- "추가공제"
+- "기타 소득공제"
 
-RULES:
-1. All amounts are numbers (no currency symbols)
-2. For refundOrOwed: positive = refund, negative = owed
-3. Calculate rates as percentages (22% = 22, not 0.22)
-4. Effective rate = (tax / agi) * 100
-5. Include all states found in the return
-6. Use empty arrays and 0 for missing fields`;
+세액공제 항목:
+- "근로소득세액공제"
+- "자녀세액공제"
+- "연금계좌세액공제"
+- "보장성보험료"
+- "의료비"
+- "교육비"
+- "기부금 세액공제"
+- "월세 세액공제"
+- "기타 세액공제"
+
+규칙:
+1. 모든 금액은 숫자 (통화 기호 없음)
+2. settlement.total: 양수 = 추가납부, 음수 = 환급
+3. 세율은 백분율로 계산 (22% = 22, 0.22 아님)
+4. 실효세율 = (결정세액 / 총급여) * 100
+5. 지방소득세 = 결정세액의 10%
+6. 없는 필드는 빈 배열이나 0으로`;

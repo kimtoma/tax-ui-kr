@@ -3,22 +3,22 @@ import { formatCurrency, formatPercent, formatPercentChange } from "./format";
 
 describe("formatCurrency", () => {
   test("formats positive amounts", () => {
-    expect(formatCurrency(1000)).toBe("$1,000");
-    expect(formatCurrency(1234567)).toBe("$1,234,567");
+    expect(formatCurrency(1000)).toBe("1,000원");
+    expect(formatCurrency(1234567)).toBe("1,234,567원");
   });
 
   test("formats negative amounts", () => {
-    expect(formatCurrency(-500)).toBe("-$500");
+    expect(formatCurrency(-500)).toBe("-500원");
   });
 
   test("formats zero", () => {
-    expect(formatCurrency(0)).toBe("$0");
+    expect(formatCurrency(0)).toBe("0원");
   });
 
   test("shows sign when requested", () => {
-    expect(formatCurrency(100, true)).toBe("+$100");
-    expect(formatCurrency(-100, true)).toBe("-$100");
-    expect(formatCurrency(0, true)).toBe("+$0");
+    expect(formatCurrency(100, true)).toBe("+100원");
+    expect(formatCurrency(-100, true)).toBe("-100원");
+    expect(formatCurrency(0, true)).toBe("+0원");
   });
 });
 

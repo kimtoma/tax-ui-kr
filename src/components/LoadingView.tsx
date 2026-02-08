@@ -8,8 +8,8 @@ interface Props {
 
 export function LoadingView({ filename, year, status }: Props) {
   const statusText = status === "extracting-year"
-    ? "Extracting year..."
-    : "Parsing tax return...";
+    ? "연도 추출 중..."
+    : "연말정산 서류 분석 중...";
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center">
@@ -18,7 +18,7 @@ export function LoadingView({ filename, year, status }: Props) {
           <BrailleSpinner className="text-2xl text-(--color-text-muted)" />
         </div>
         <h2 className="text-xl font-semibold text-(--color-text) mb-2">
-          {year ? `${year} Tax Return` : "Processing"}
+          {year ? `${year}년 연말정산` : "처리 중"}
         </h2>
         <p className="text-sm text-(--color-text-secondary) mb-1 max-w-xs truncate px-4">{filename}</p>
         <p className="text-xs text-(--color-text-muted) animate-pulse-soft">{statusText}</p>

@@ -148,7 +148,7 @@ export function SetupDialog({
     if (droppedFiles.length > 0) {
       addFiles(droppedFiles);
     } else {
-      setError("Please upload PDF files");
+      setError("PDF 파일을 업로드해주세요");
     }
   }
 
@@ -162,7 +162,7 @@ export function SetupDialog({
     if (selectedFiles.length > 0) {
       addFiles(selectedFiles);
     } else if (e.target.files?.length) {
-      setError("Please upload PDF files");
+      setError("PDF 파일을 업로드해주세요");
     }
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -181,11 +181,11 @@ export function SetupDialog({
 
   async function handleSubmit() {
     if (!hasStoredKey && !apiKey.trim()) {
-      setError("Please enter your API key");
+      setError("API 키를 입력해주세요");
       return;
     }
     if (files.length === 0) {
-      setError("Please upload at least one tax return PDF");
+      setError("최소 하나의 연말정산 PDF를 업로드해주세요");
       return;
     }
 
@@ -198,7 +198,7 @@ export function SetupDialog({
         apiKey.trim(),
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to process PDFs");
+      setError(err instanceof Error ? err.message : "PDF 처리에 실패했습니다");
     } finally {
       setIsLoading(false);
     }
@@ -235,11 +235,11 @@ export function SetupDialog({
   const currentIndex = completedCount + processingCount;
 
   function getButtonText(): string {
-    if (isProcessing) return `Processing ${currentIndex} of ${totalCount}...`;
-    if (isLoading) return "Processing...";
-    if (isExtracting) return "Checking...";
-    if (duplicateCount > 0 && nonDuplicateCount === 0) return "Reprocess";
-    return "Process";
+    if (isProcessing) return `처리 중 ${currentIndex} / ${totalCount}...`;
+    if (isLoading) return "처리 중...";
+    if (isExtracting) return "확인 중...";
+    if (duplicateCount > 0 && nonDuplicateCount === 0) return "재처리";
+    return "처리";
   }
 
   const isSubmitDisabled =
@@ -255,11 +255,11 @@ export function SetupDialog({
     <Dialog
       open={isOpen}
       onClose={onClose}
-      title={hasStoredKey ? "Upload tax returns" : "Tax UI"}
+      title={hasStoredKey ? "연말정산 서류 업로드" : "Tax UI"}
       description={
         hasStoredKey
-          ? "Upload more tax returns"
-          : "Make sense of your tax returns"
+          ? "연말정산 서류 추가 업로드"
+          : "연말정산 서류를 한눈에 파악하세요"
       }
       size="lg"
       fullScreenMobile
@@ -272,7 +272,7 @@ export function SetupDialog({
         {/* API Key Section - always visible */}
         <div className="mb-6">
           <label className="block text-sm font-medium mb-2">
-            Anthropic API Key
+            Anthropic API 키
           </label>
           {hasStoredKey ? (
             <div className="w-full px-3 py-2.5 border border-(--color-border) bg-(--color-bg-muted) rounded-lg text-sm text-(--color-text-muted)">
@@ -293,7 +293,7 @@ export function SetupDialog({
                 className="w-full px-3 py-2.5 border border-(--color-border) bg-(--color-bg-muted) rounded-lg text-sm placeholder:text-(--color-text-muted) focus:outline-none focus:border-(--color-text-muted) disabled:opacity-50"
               />
               <p className="text-xs text-(--color-text-muted) mt-2">
-                Get your API key from{" "}
+                API 키를 발급받으세요:{" "}
                 <a
                   href="https://console.anthropic.com/settings/keys"
                   target="_blank"
@@ -310,7 +310,7 @@ export function SetupDialog({
         {/* Upload Section - always visible, disabled during processing */}
         <div className="mb-6">
           <label className="block sr-only text-sm font-medium mb-2">
-            Files
+            파일
           </label>
 
           {/* Drop zone */}
@@ -341,8 +341,8 @@ export function SetupDialog({
               className="hidden"
             />
             <div className="text-(--color-text-muted)">
-              <p className="text-sm">Drop your tax return PDFs here</p>
-              <p className="text-xs mt-1 opacity-70">Click to browse</p>
+              <p className="text-sm">연말정산 PDF를 여기에 놓으세요</p>
+              <p className="text-xs mt-1 opacity-70">클릭하여 파일 선택</p>
             </div>
           </div>
 

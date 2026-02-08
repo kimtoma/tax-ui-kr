@@ -195,11 +195,11 @@ export function Chat({
       />
       {/* Header */}
       <header className="h-12 pl-4 pr-2 flex items-center justify-between border-b border-(--color-border)">
-        <span className="text-sm font-semibold">Chat</span>
+        <span className="text-sm font-semibold">채팅</span>
         <div className="flex items-center gap-1">
           {messages.length > 0 && (
             <Button variant="ghost" size="sm" onClick={handleNewChat}>
-              New
+              새 대화
             </Button>
           )}
           <Button variant="ghost" size="sm" iconOnly onClick={onClose}>
@@ -235,7 +235,7 @@ export function Chat({
                           : "var(--color-text-muted)",
                     }}
                   >
-                    {message.role === "user" ? "You" : "Claude"}
+                    {message.role === "user" ? "나" : "Claude"}
                   </div>
                   <div className="text-sm prose-chat">
                     <Markdown
@@ -322,7 +322,7 @@ export function Chat({
           >
             {!isLoadingSuggestions && (
               <span className="text-xs text-(--color-text-muted) mb-1">
-                Suggested follow-ups
+                추천 후속 질문
               </span>
             )}
             {isLoadingSuggestions ? (
@@ -353,9 +353,9 @@ export function Chat({
           }}
         >
           {[
-            "Help me understand my tax returns",
-            "How can I optimize next year?",
-            "Look for mistakes in my tax return history",
+            "연말정산 내용을 요약해줘",
+            "내년 세금을 어떻게 줄일 수 있을까?",
+            "소득공제를 더 받을 수 있는 방법이 있을까?",
           ].map((suggestion) => (
             <Button
               key={suggestion}
@@ -390,7 +390,7 @@ export function Chat({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={isDemo || hasApiKey ? "Ask anything..." : "Need API key"}
+          placeholder={isDemo || hasApiKey ? "무엇이든 물어보세요..." : "API 키 필요"}
           disabled={(!isDemo && !hasApiKey) || isLoading}
           rows={3}
           className="w-full px-3 py-2.5 bg-(--color-bg-muted) rounded-lg text-base md:text-sm placeholder:text-(--color-text-muted) resize-none focus:outline-none disabled:opacity-50 overflow-y-auto"

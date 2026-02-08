@@ -51,7 +51,7 @@ export function StatsHeader({ returns, selectedYear }: Props) {
     const hourlyRatesPerYear = allReturns.map((r) => getNetIncome(r) / 2080);
 
     return {
-      income: allReturns.map((r) => r.income.total),
+      income: allReturns.map((r) => r.income.totalSalary),
       taxes: allReturns.map((r) => getTotalTax(r)),
       net: allReturns.map((r) => getNetIncome(r)),
       hourlyRates: hourlyRatesPerYear,
@@ -68,7 +68,7 @@ export function StatsHeader({ returns, selectedYear }: Props) {
       return { income: 0, taxes: 0, net: 0, timeUnit: 0 };
 
     // Collect all possible values including summary totals
-    const incomeValues = allReturns.map((r) => r.income.total);
+    const incomeValues = allReturns.map((r) => r.income.totalSalary);
     const taxValues = allReturns.map((r) => getTotalTax(r));
     const netValues = allReturns.map((r) => getNetIncome(r));
     const hourlyRates = allReturns.map((r) => getNetIncome(r) / 2080);
@@ -124,7 +124,7 @@ export function StatsHeader({ returns, selectedYear }: Props) {
       if (allReturns.length === 0) return null;
 
       const totalIncome = allReturns.reduce(
-        (sum, r) => sum + r.income.total,
+        (sum, r) => sum + r.income.totalSalary,
         0,
       );
       const totalTaxes = allReturns.reduce((sum, r) => sum + getTotalTax(r), 0);
@@ -145,7 +145,7 @@ export function StatsHeader({ returns, selectedYear }: Props) {
       const yearData = returns[selectedYear];
       if (!yearData) return null;
 
-      const income = yearData.income.total;
+      const income = yearData.income.totalSalary;
       const taxes = getTotalTax(yearData);
       const net = income - taxes;
       const hourlyRate = net / 2080;
@@ -173,12 +173,12 @@ export function StatsHeader({ returns, selectedYear }: Props) {
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-6">
         <div className="col-span-2 lg:col-span-1 flex items-center">
           <div className="text-2xl font-semibold tabular-nums slashed-zero tracking-tight text-(--color-text-secondary)">
-            {isSummary ? "All time" : selectedYear}
+            {isSummary ? "전체" : selectedYear}
           </div>
         </div>
 
         <div>
-          <div className="text-xs text-(--color-text-muted) mb-1">Income</div>
+          <div className="text-xs text-(--color-text-muted) mb-1">소득</div>
           <div className="flex items-center gap-3">
             <AnimatedNumber
               value={stats.income}
@@ -199,7 +199,7 @@ export function StatsHeader({ returns, selectedYear }: Props) {
         </div>
 
         <div>
-          <div className="text-xs text-(--color-text-muted) mb-1">Taxes</div>
+          <div className="text-xs text-(--color-text-muted) mb-1">세금</div>
           <div className="flex items-center gap-3">
             <AnimatedNumber
               value={stats.taxes}
@@ -220,7 +220,7 @@ export function StatsHeader({ returns, selectedYear }: Props) {
         </div>
 
         <div>
-          <div className="text-xs text-(--color-text-muted) mb-1">Net</div>
+          <div className="text-xs text-(--color-text-muted) mb-1">순수입</div>
           <div className="flex items-center gap-3">
             <AnimatedNumber
               value={stats.net}
@@ -281,7 +281,7 @@ export function StatsHeader({ returns, selectedYear }: Props) {
                 ),
               )}
             </Menu>
-            <Tooltip content="Based on 2080hrs of work per year" delay={0}>
+            <Tooltip content="연간 근무시간 2080시간 기준" delay={0}>
               <InfoIcon size={16} className="opacity-60" />
             </Tooltip>
           </div>

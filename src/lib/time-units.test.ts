@@ -9,10 +9,10 @@ import {
 
 describe("TIME_UNIT_LABELS", () => {
   test("has all expected labels", () => {
-    expect(TIME_UNIT_LABELS.daily).toBe("Daily");
-    expect(TIME_UNIT_LABELS.hourly).toBe("Hourly");
-    expect(TIME_UNIT_LABELS.minute).toBe("Minute");
-    expect(TIME_UNIT_LABELS.second).toBe("Second");
+    expect(TIME_UNIT_LABELS.daily).toBe("일급");
+    expect(TIME_UNIT_LABELS.hourly).toBe("시급");
+    expect(TIME_UNIT_LABELS.minute).toBe("분급");
+    expect(TIME_UNIT_LABELS.second).toBe("초급");
   });
 });
 
@@ -26,22 +26,22 @@ describe("TIME_UNIT_SUFFIXES", () => {
 });
 
 describe("convertToTimeUnit", () => {
-  const hourlyRate = 60; // $60/hour
+  const hourlyRate = 30000; // 30,000원/hour (Korean context)
 
   test("converts to daily (8 hours)", () => {
-    expect(convertToTimeUnit(hourlyRate, "daily")).toBe(480);
+    expect(convertToTimeUnit(hourlyRate, "daily")).toBe(240000);
   });
 
   test("returns hourly as-is", () => {
-    expect(convertToTimeUnit(hourlyRate, "hourly")).toBe(60);
+    expect(convertToTimeUnit(hourlyRate, "hourly")).toBe(30000);
   });
 
   test("converts to per-minute", () => {
-    expect(convertToTimeUnit(hourlyRate, "minute")).toBe(1);
+    expect(convertToTimeUnit(hourlyRate, "minute")).toBe(500);
   });
 
   test("converts to per-second", () => {
-    expect(convertToTimeUnit(hourlyRate, "second")).toBeCloseTo(0.0167, 3);
+    expect(convertToTimeUnit(hourlyRate, "second")).toBeCloseTo(8.333, 2);
   });
 
   test("handles fractional hourly rates", () => {
@@ -52,44 +52,44 @@ describe("convertToTimeUnit", () => {
 
 describe("formatTimeUnitValue", () => {
   test("formats daily as rounded currency", () => {
-    expect(formatTimeUnitValue(480.5, "daily")).toBe("$481");
+    expect(formatTimeUnitValue(240000, "daily")).toBe("240,000원");
   });
 
   test("formats hourly as rounded currency", () => {
-    expect(formatTimeUnitValue(60.75, "hourly")).toBe("$61");
+    expect(formatTimeUnitValue(30000, "hourly")).toBe("30,000원");
   });
 
   test("formats minute with suffix", () => {
-    expect(formatTimeUnitValue(1.25, "minute")).toBe("$1.25/m");
+    expect(formatTimeUnitValue(500, "minute")).toBe("500원/m");
   });
 
   test("formats second with suffix", () => {
-    expect(formatTimeUnitValue(0.02, "second")).toBe("$0.02/s");
+    expect(formatTimeUnitValue(8, "second")).toBe("8원/s");
   });
 
-  test("handles sub-cent values", () => {
-    expect(formatTimeUnitValue(0.005, "second")).toBe("$0.005/s");
+  test("handles small values", () => {
+    expect(formatTimeUnitValue(0.5, "second")).toBe("1원/s");
   });
 });
 
 describe("formatTimeUnitValueCompact", () => {
   test("formats daily compactly with suffix", () => {
-    expect(formatTimeUnitValueCompact(480, "daily")).toBe("$480/d");
+    expect(formatTimeUnitValueCompact(240000, "daily")).toBe("24만/d");
   });
 
   test("formats hourly compactly with suffix", () => {
-    expect(formatTimeUnitValueCompact(60, "hourly")).toBe("$60/h");
+    expect(formatTimeUnitValueCompact(30000, "hourly")).toBe("3만/h");
   });
 
-  test("formats large daily values with K suffix", () => {
-    expect(formatTimeUnitValueCompact(1500, "daily")).toBe("$2K/d");
+  test("formats large daily values with 억 suffix", () => {
+    expect(formatTimeUnitValueCompact(150000000, "daily")).toBe("1.5억/d");
   });
 
   test("formats minute same as regular", () => {
-    expect(formatTimeUnitValueCompact(1.25, "minute")).toBe("$1.25/m");
+    expect(formatTimeUnitValueCompact(500, "minute")).toBe("500원/m");
   });
 
   test("formats second same as regular", () => {
-    expect(formatTimeUnitValueCompact(0.02, "second")).toBe("$0.02/s");
+    expect(formatTimeUnitValueCompact(8, "second")).toBe("8원/s");
   });
 });

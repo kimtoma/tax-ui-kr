@@ -66,7 +66,7 @@ export function FAQSection() {
         <Accordion.Item value="data-safe">
           <Accordion.Header>
             <Accordion.Trigger className="w-full text-sm font-medium cursor-pointer flex items-center justify-between px-3 py-2.5 rounded-lg group focus:outline-none hover:bg-(--color-bg-muted) transition-colors">
-              <span>How data is processed</span>
+              <span>데이터 처리 방식</span>
               <motion.svg
                 className="w-4 h-4 text-(--color-text-muted)"
                 fill="none"
@@ -96,20 +96,20 @@ export function FAQSection() {
             >
               <div className="text-sm text-(--color-text-muted) space-y-2 px-3 pt-1 pb-3">
                 <p>
-                  Your tax data is processed locally and sent directly to
-                  Anthropic's API using your own API key. No data is stored on
-                  any third-party servers.
+                  세금 데이터는 로컬에서 처리되며, 사용자의 API 키를 통해
+                  Anthropic API로 직접 전송됩니다. 어떤 제3자 서버에도
+                  데이터가 저장되지 않습니다.
                 </p>
                 <p>
-                  Anthropic's commercial terms prohibit training models on API
-                  customer data.{" "}
+                  Anthropic의 상업용 약관은 API 고객 데이터로 모델을 학습하는
+                  것을 금지합니다.{" "}
                   <a
                     href="https://www.anthropic.com/legal/privacy"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="underline hover:text-(--color-text)"
                   >
-                    Privacy policy
+                    개인정보 처리방침
                   </a>
                 </p>
               </div>
@@ -120,7 +120,7 @@ export function FAQSection() {
         <Accordion.Item value="how-sure">
           <Accordion.Header>
             <Accordion.Trigger className="w-full text-sm font-medium cursor-pointer flex items-center justify-between px-3 py-2.5 rounded-lg group focus:outline-none hover:bg-(--color-bg-muted) transition-colors">
-              <span>Ask AI about privacy and security</span>
+              <span>AI에게 보안과 개인정보 보호 문의</span>
               <motion.svg
                 className="w-4 h-4 text-(--color-text-muted)"
                 fill="none"
@@ -150,8 +150,8 @@ export function FAQSection() {
             >
               <div className="text-sm text-(--color-text-muted) space-y-3 px-3 pt-1 pb-2">
                 <p>
-                  Tax UI is open source. You can review the code yourself, or
-                  ask an AI to audit it for you.
+                  Tax UI는 오픈소스입니다. 직접 코드를 검토하거나 AI에게
+                  보안 감사를 요청할 수 있습니다.
                 </p>
                 <Button
                   onClick={handleCopyPrompt}
@@ -159,7 +159,7 @@ export function FAQSection() {
                   size="sm"
                   className="w-full"
                 >
-                  {copied ? "Copied!" : "Copy prompt"}
+                  {copied ? "복사됨!" : "프롬프트 복사"}
                 </Button>
               </div>
             </motion.div>

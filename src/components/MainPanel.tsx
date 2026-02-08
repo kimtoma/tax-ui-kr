@@ -267,12 +267,12 @@ export function MainPanel(props: Props) {
           >
             <MenuItem onClick={props.onOpenStart}>
               <FilePlusIcon />
-              Get started
+              시작하기
             </MenuItem>
             {!props.isDemo && (props.hasUserData || props.hasStoredKey) && (
               <MenuItem onClick={props.onOpenReset}>
                 <TrashIcon />
-                Reset data
+                데이터 초기화
               </MenuItem>
             )}
 
@@ -295,7 +295,7 @@ export function MainPanel(props: Props) {
                   />
                 </svg>
               </div>
-              Contribute
+              기여하기
             </MenuItem>
           </Menu>
           <Tabs.Root
@@ -356,7 +356,7 @@ export function MainPanel(props: Props) {
                                             }
                                           >
                                             <TrashIcon />
-                                            Remove {item.label} data
+                                            {item.label} 데이터 삭제
                                           </ContextMenu.Item>
                                         </ContextMenu.Popup>
                                       </ContextMenu.Positioner>
@@ -403,7 +403,7 @@ export function MainPanel(props: Props) {
                   className="shrink-0 flex items-center gap-1 px-2.5 py-1"
                 >
                   <PlusIcon size={14} strokeWidth={2.5} />
-                  Upload
+                  업로드
                 </Button>
               ) : (
                 <Button
@@ -411,7 +411,7 @@ export function MainPanel(props: Props) {
                   size="sm"
                   iconOnly
                   onClick={props.onOpenStart}
-                  title="Add tax returns"
+                  title="연말정산 서류 추가"
                   className="shrink-0"
                 >
                   <PlusIcon />
@@ -427,7 +427,7 @@ export function MainPanel(props: Props) {
             onClick={props.onToggleChat}
             className="shrink-0 flex items-center gap-2"
           >
-            Chat
+            채팅
             {props.isChatLoading && <BrailleSpinner className="text-xs" />}
           </Button>
         )}

@@ -3,10 +3,10 @@ import { formatCurrency, formatCurrencyCents, formatCompact } from "./format";
 export type TimeUnit = "daily" | "hourly" | "minute" | "second";
 
 export const TIME_UNIT_LABELS: Record<TimeUnit, string> = {
-  daily: "Daily",
-  hourly: "Hourly",
-  minute: "Minute",
-  second: "Second",
+  daily: "일급",
+  hourly: "시급",
+  minute: "분급",
+  second: "초급",
 };
 
 export const TIME_UNIT_SUFFIXES: Record<TimeUnit, string> = {

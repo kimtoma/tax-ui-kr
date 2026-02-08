@@ -1,119 +1,75 @@
 import { describe, expect, test } from "bun:test";
-import { getTotalTax, getNetIncome, getEffectiveRate } from "./tax-calculations";
+import { getTotalTax, getNetIncome } from "./tax-calculations";
 import type { TaxReturn } from "./schema";
 
 const baseTaxReturn: TaxReturn = {
   year: 2024,
-  name: "Test User",
-  filingStatus: "single",
+  name: "홍길동",
+  householdStatus: "세대주",
   dependents: [],
   income: {
-    items: [{ label: "Wages", amount: 100000 }],
-    total: 100000,
+    items: [{ label: "급여", amount: 73_000_000 }],
+    totalSalary: 73_000_000,
   },
-  federal: {
-    agi: 100000,
-    deductions: [{ label: "Standard deduction", amount: -14600 }],
-    taxableIncome: 85400,
-    tax: 14000,
-    credits: [],
-    payments: [{ label: "Withheld", amount: -15000 }],
-    refundOrOwed: 1000,
+  employmentDeduction: 15_900_000,
+  employmentIncome: 57_100_000,
+  incomeDeductions: {
+    items: [
+      { label: "국민연금", amount: 3_285_000 },
+      { label: "건강보험", amount: 2_482_000 },
+    ],
+    total: 5_767_000,
   },
-  states: [
-    {
-      name: "California",
-      agi: 100000,
-      deductions: [{ label: "Standard deduction", amount: -5000 }],
-      taxableIncome: 95000,
-      tax: 5000,
-      adjustments: [],
-      payments: [{ label: "Withheld", amount: -4500 }],
-      refundOrOwed: -500,
-    },
-  ],
-  summary: {
-    federalAmount: 1000,
-    stateAmounts: [{ state: "California", amount: -500 }],
-    netPosition: 500,
+  taxBase: 41_609_000,
+  calculatedTax: 4_981_350,
+  taxCredits: {
+    items: [{ label: "근로소득세액공제", amount: 500_000 }],
+    total: 500_000,
+  },
+  determinedTax: 4_481_350,
+  localIncomeTax: 448_135,
+  taxAlreadyPaid: {
+    incomeTax: 4_600_000,
+    localTax: 460_000,
+    total: 5_060_000,
+  },
+  settlement: {
+    incomeTax: -118_650,
+    localTax: -11_865,
+    total: -130_515,
+  },
+  rates: {
+    marginal: 15,
+    effective: 6.7,
   },
 };
 
 describe("getTotalTax", () => {
-  test("sums federal and state taxes", () => {
-    expect(getTotalTax(baseTaxReturn)).toBe(19000); // 14000 + 5000
+  test("sums determinedTax and localIncomeTax", () => {
+    expect(getTotalTax(baseTaxReturn)).toBe(4_929_485); // 4_481_350 + 448_135
   });
 
-  test("handles multiple states", () => {
-    const multiState: TaxReturn = {
+  test("handles zero local tax", () => {
+    const noLocal: TaxReturn = {
       ...baseTaxReturn,
-      states: [
-        { ...baseTaxReturn.states[0]!, tax: 3000 },
-        {
-          name: "New York",
-          agi: 100000,
-          deductions: [],
-          taxableIncome: 100000,
-          tax: 4000,
-          adjustments: [],
-          payments: [],
-          refundOrOwed: -4000,
-        },
-      ],
+      localIncomeTax: 0,
     };
-    expect(getTotalTax(multiState)).toBe(21000); // 14000 + 3000 + 4000
-  });
-
-  test("handles no state taxes", () => {
-    const noState: TaxReturn = {
-      ...baseTaxReturn,
-      states: [],
-    };
-    expect(getTotalTax(noState)).toBe(14000);
+    expect(getTotalTax(noLocal)).toBe(4_481_350);
   });
 });
 
 describe("getNetIncome", () => {
-  test("subtracts total tax from total income", () => {
-    expect(getNetIncome(baseTaxReturn)).toBe(81000); // 100000 - 19000
+  test("subtracts total tax from total salary", () => {
+    // 73_000_000 - 4_929_485 = 68_070_515
+    expect(getNetIncome(baseTaxReturn)).toBe(68_070_515);
   });
 
   test("handles zero tax", () => {
     const zeroTax: TaxReturn = {
       ...baseTaxReturn,
-      federal: { ...baseTaxReturn.federal, tax: 0 },
-      states: [],
+      determinedTax: 0,
+      localIncomeTax: 0,
     };
-    expect(getNetIncome(zeroTax)).toBe(100000);
-  });
-});
-
-describe("getEffectiveRate", () => {
-  test("uses combined rate when available", () => {
-    const withRates: TaxReturn = {
-      ...baseTaxReturn,
-      rates: {
-        federal: { marginal: 22, effective: 14 },
-        state: { marginal: 9.3, effective: 5 },
-        combined: { marginal: 31.3, effective: 19 },
-      },
-    };
-    expect(getEffectiveRate(withRates)).toBe(0.19); // 19% as decimal
-  });
-
-  test("calculates from tax/income when no rates provided", () => {
-    // 19000 / 100000 = 0.19
-    expect(getEffectiveRate(baseTaxReturn)).toBe(0.19);
-  });
-
-  test("handles rates without combined", () => {
-    const partialRates: TaxReturn = {
-      ...baseTaxReturn,
-      rates: {
-        federal: { marginal: 22, effective: 14 },
-      },
-    };
-    // Falls back to calculation: 19000 / 100000 = 0.19
-    expect(getEffectiveRate(partialRates)).toBe(0.19);
+    expect(getNetIncome(zeroTax)).toBe(73_000_000);
   });
 });

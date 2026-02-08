@@ -35,14 +35,14 @@ const SCENARIOS: Scenario[] = [
     files: [
       {
         id: "f1",
-        filename: "tax-return-2024.pdf",
+        filename: "연말정산-2024.pdf",
         year: null,
         status: "extracting",
         isDuplicate: false,
       },
       {
         id: "f2",
-        filename: "1040-2023.pdf",
+        filename: "원천징수-2023.pdf",
         year: null,
         status: "extracting",
         isDuplicate: false,
@@ -57,14 +57,14 @@ const SCENARIOS: Scenario[] = [
     files: [
       {
         id: "f1",
-        filename: "tax-return-2024.pdf",
+        filename: "연말정산-2024.pdf",
         year: 2024,
         status: "ready",
         isDuplicate: false,
       },
       {
         id: "f2",
-        filename: "1040-2023.pdf",
+        filename: "원천징수-2023.pdf",
         year: 2023,
         status: "ready",
         isDuplicate: false,
@@ -79,14 +79,14 @@ const SCENARIOS: Scenario[] = [
     files: [
       {
         id: "f1",
-        filename: "tax-return-2024.pdf",
+        filename: "연말정산-2024.pdf",
         year: 2024,
         status: "ready",
         isDuplicate: true,
       },
       {
         id: "f2",
-        filename: "1040-2023.pdf",
+        filename: "원천징수-2023.pdf",
         year: 2023,
         status: "ready",
         isDuplicate: false,
@@ -109,14 +109,14 @@ const SCENARIOS: Scenario[] = [
     files: [
       {
         id: "f1",
-        filename: "tax-return-2024.pdf",
+        filename: "연말정산-2024.pdf",
         year: 2024,
         status: "ready",
         isDuplicate: false,
       },
       {
         id: "f2",
-        filename: "1040-2023.pdf",
+        filename: "원천징수-2023.pdf",
         year: 2023,
         status: "ready",
         isDuplicate: false,
@@ -132,21 +132,21 @@ const SCENARIOS: Scenario[] = [
     files: [
       {
         id: "f1",
-        filename: "tax-return-2024.pdf",
+        filename: "연말정산-2024.pdf",
         year: 2024,
         status: "parsing",
         isDuplicate: false,
       },
       {
         id: "f2",
-        filename: "1040-2023.pdf",
+        filename: "원천징수-2023.pdf",
         year: 2023,
         status: "pending",
         isDuplicate: false,
       },
       {
         id: "f3",
-        filename: "federal-2022.pdf",
+        filename: "근로소득-2022.pdf",
         year: 2022,
         status: "pending",
         isDuplicate: false,
@@ -161,21 +161,21 @@ const SCENARIOS: Scenario[] = [
     files: [
       {
         id: "f1",
-        filename: "tax-return-2024.pdf",
+        filename: "연말정산-2024.pdf",
         year: 2024,
         status: "complete",
         isDuplicate: false,
       },
       {
         id: "f2",
-        filename: "1040-2023.pdf",
+        filename: "원천징수-2023.pdf",
         year: 2023,
         status: "parsing",
         isDuplicate: false,
       },
       {
         id: "f3",
-        filename: "federal-2022.pdf",
+        filename: "근로소득-2022.pdf",
         year: 2022,
         status: "pending",
         isDuplicate: false,
@@ -190,21 +190,21 @@ const SCENARIOS: Scenario[] = [
     files: [
       {
         id: "f1",
-        filename: "tax-return-2024.pdf",
+        filename: "연말정산-2024.pdf",
         year: 2024,
         status: "complete",
         isDuplicate: false,
       },
       {
         id: "f2",
-        filename: "1040-2023.pdf",
+        filename: "원천징수-2023.pdf",
         year: 2023,
         status: "complete",
         isDuplicate: false,
       },
       {
         id: "f3",
-        filename: "federal-2022.pdf",
+        filename: "근로소득-2022.pdf",
         year: 2022,
         status: "complete",
         isDuplicate: false,
@@ -219,7 +219,7 @@ const SCENARIOS: Scenario[] = [
     files: [
       {
         id: "f1",
-        filename: "corrupted-file.pdf",
+        filename: "손상된파일.pdf",
         year: 2024,
         status: "error",
         isDuplicate: false,
@@ -227,14 +227,14 @@ const SCENARIOS: Scenario[] = [
       },
       {
         id: "f2",
-        filename: "1040-2023.pdf",
+        filename: "원천징수-2023.pdf",
         year: 2023,
         status: "complete",
         isDuplicate: false,
       },
       {
         id: "f3",
-        filename: "federal-2022.pdf",
+        filename: "근로소득-2022.pdf",
         year: 2022,
         status: "parsing",
         isDuplicate: false,
@@ -280,10 +280,10 @@ export function SetupDialogPreview({ onClose }: Props) {
   useHotkeys("right", next, { preventDefault: true });
   useHotkeys("escape", onClose, { preventDefault: true });
 
-  const dialogTitle = scenario.hasStoredKey ? "Upload tax returns" : "Tax UI";
+  const dialogTitle = scenario.hasStoredKey ? "연말정산 서류 업로드" : "Tax UI";
   const dialogDescription = scenario.hasStoredKey
-    ? "Upload more tax returns"
-    : "Make sense of your tax returns";
+    ? "연말정산 서류를 추가로 업로드하세요"
+    : "연말정산 서류를 시각화하고 분석하세요";
 
   return (
     <>
@@ -346,8 +346,8 @@ export function SetupDialogPreview({ onClose }: Props) {
                   ].join(" ")}
                 >
                   <div className="text-(--color-text-muted)">
-                    <p className="text-sm">Drop your tax return PDFs here</p>
-                    <p className="text-xs mt-1 opacity-70">Click to browse</p>
+                    <p className="text-sm">연말정산 PDF를 여기에 놓으세요</p>
+                    <p className="text-xs mt-1 opacity-70">클릭하여 찾아보기</p>
                   </div>
                 </div>
 

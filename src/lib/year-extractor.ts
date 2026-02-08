@@ -2,8 +2,8 @@
 const YEAR_PATTERNS = [
   /(?:^|[_\-\s])(\d{4})(?:[_\-\s]|\.pdf$)/i,  // 2023_tax.pdf, 2023-tax.pdf
   /(?:TY|FY)(\d{4})/i,                         // TY2023.pdf, FY2023.pdf
-  /(\d{4})[-_](?:1040|tax|return)/i,           // 2023-tax-return.pdf, 2023_1040.pdf
-  /(?:1040|tax|return)[-_](\d{4})/i,           // tax-return-2023.pdf
+  /(\d{4})[-_](?:연말정산|원천징수|근로소득|세금|tax|return)/i,  // 2023-연말정산.pdf
+  /(?:연말정산|원천징수|근로소득|세금|tax|return)[-_](\d{4})/i,  // 연말정산-2023.pdf
   /^(\d{4})\.pdf$/i,                            // 2023.pdf
 ];
 

@@ -103,8 +103,8 @@ export class ErrorBoundary extends Component<Props, State> {
                 <Dialog
                     open={true}
                     onClose={this.handleDismiss}
-                    title="Something went wrong"
-                    description={`An unexpected error occurred${name ? ` in ${name}` : ""}. If this keeps happening, please open an issue on GitHub so we can fix it.`}
+                    title="오류가 발생했습니다"
+                    description={`예상치 못한 오류가 발생했습니다${name ? ` (${name})` : ""}. 이 문제가 계속 발생하면 GitHub에서 이슈를 등록해주세요.`}
                     size="lg"
                 >
                     <div className="bg-(--color-bg-muted) border border-(--color-border) rounded-lg p-3 mb-4 max-h-32 overflow-auto">
@@ -115,14 +115,14 @@ export class ErrorBoundary extends Component<Props, State> {
 
                     <div className="flex gap-3 justify-end">
                         <Button variant="secondary" onClick={this.handleReload}>
-                            Reload page
+                            페이지 새로고침
                         </Button>
                         <a
                             href={issueUrl}
                             target="_blank"
                             rel="noopener noreferrer"
                         >
-                            <Button variant="primary">Open issue</Button>
+                            <Button variant="primary">이슈 등록</Button>
                         </a>
                     </div>
                 </Dialog>

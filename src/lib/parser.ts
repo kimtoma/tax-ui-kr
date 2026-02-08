@@ -123,7 +123,6 @@ function mergeReturns(returns: TaxReturn[]): TaxReturn {
     return first;
   }
 
-  // Start with the first result as the base (usually has the main 1040 data)
   const base = first;
 
   for (let i = 1; i < returns.length; i++) {
@@ -132,45 +131,22 @@ function mergeReturns(returns: TaxReturn[]): TaxReturn {
     // Merge income items
     base.income.items = mergeLabeledAmounts(base.income.items, chunk.income.items);
 
-    // Use the higher total income if found
-    if (chunk.income.total > base.income.total) {
-      base.income.total = chunk.income.total;
+    // Use the higher total salary if found
+    if (chunk.income.totalSalary > base.income.totalSalary) {
+      base.income.totalSalary = chunk.income.totalSalary;
     }
 
-    // Merge federal deductions, credits, payments
-    base.federal.deductions = mergeLabeledAmounts(
-      base.federal.deductions,
-      chunk.federal.deductions
-    );
-    base.federal.credits = mergeLabeledAmounts(
-      base.federal.credits,
-      chunk.federal.credits
-    );
-    base.federal.payments = mergeLabeledAmounts(
-      base.federal.payments,
-      chunk.federal.payments
+    // Merge income deductions
+    base.incomeDeductions.items = mergeLabeledAmounts(
+      base.incomeDeductions.items,
+      chunk.incomeDeductions.items
     );
 
-    // Merge state returns
-    for (const chunkState of chunk.states) {
-      const existingState = base.states.find((s) => s.name === chunkState.name);
-      if (existingState) {
-        existingState.deductions = mergeLabeledAmounts(
-          existingState.deductions,
-          chunkState.deductions
-        );
-        existingState.adjustments = mergeLabeledAmounts(
-          existingState.adjustments,
-          chunkState.adjustments
-        );
-        existingState.payments = mergeLabeledAmounts(
-          existingState.payments,
-          chunkState.payments
-        );
-      } else {
-        base.states.push(chunkState);
-      }
-    }
+    // Merge tax credits
+    base.taxCredits.items = mergeLabeledAmounts(
+      base.taxCredits.items,
+      chunk.taxCredits.items
+    );
 
     // Merge dependents
     const existingDependentNames = new Set(base.dependents.map((d) => d.name));
@@ -296,7 +272,7 @@ export async function extractYearFromPdf(
             },
             {
               type: "text",
-              text: "What tax year is this document for? Respond with ONLY the 4-digit year (e.g., 2023). If you cannot determine the year, respond with 'UNKNOWN'.",
+              text: "이 문서의 귀속 연도가 몇 년인가요? 4자리 연도만 응답하세요 (예: 2023). 연도를 알 수 없으면 'UNKNOWN'이라고 응답하세요.",
             },
           ],
         },

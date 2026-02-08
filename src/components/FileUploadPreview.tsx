@@ -112,7 +112,7 @@ function FileStatusIndicator({ file }: { file: DisplayFile }) {
           transition={{ duration: 0.15 }}
           className="text-xs text-(--color-text-muted)"
         >
-          Waiting
+          대기 중
         </motion.span>
       )}
       {file.status === "parsing" && (
@@ -155,7 +155,7 @@ function FileStatusIndicator({ file }: { file: DisplayFile }) {
           transition={{ duration: 0.15 }}
           className="text-xs text-(--color-negative)"
         >
-          Failed
+          실패
         </motion.span>
       )}
       {file.status === "ready" && file.year !== null && (
@@ -172,7 +172,7 @@ function FileStatusIndicator({ file }: { file: DisplayFile }) {
               : "bg-(--color-bg-muted)",
           ].join(" ")}
         >
-          {file.isDuplicate ? "Reprocess" : file.year}
+          {file.isDuplicate ? "재처리" : file.year}
         </motion.span>
       )}
     </AnimatePresence>

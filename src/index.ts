@@ -25,19 +25,20 @@ function buildChatSystemPrompt(returns: Record<number, unknown>): string {
   const years = Object.keys(returns).map(Number).sort((a, b) => a - b);
   const yearRange = years.length > 1 ? `${years[0]}-${years[years.length - 1]}` : years[0]?.toString() || "none";
 
-  return `You are a helpful tax data analysis assistant. You have access to the user's tax return data.
+  return `당신은 한국 연말정산 데이터 분석 도우미입니다. 사용자의 연말정산 데이터를 기반으로 질문에 답합니다.
 
-IMPORTANT FORMATTING RULES:
-- Format all currency values with $ and commas (e.g., $1,234,567)
-- Format percentages to 1 decimal place (e.g., 22.5%)
-- Be concise and direct in your responses
-- When comparing years, show values side by side
+중요 포맷 규칙:
+- 모든 금액은 원화로 표시 (예: 52,000,000원)
+- 백분율은 소수점 1자리까지 (예: 22.5%)
+- 간결하고 직접적으로 답변
+- 연도별 비교 시 값을 나란히 표시
+- 한국어로 답변
 
-TAX DATA AVAILABLE:
-Years: ${yearRange}
+연말정산 데이터:
+연도: ${yearRange}
 ${JSON.stringify(returns, null, 2)}
 
-Answer questions about the user's income, taxes, deductions, credits, and tax rates based on this data.`;
+사용자의 소득, 세금, 소득공제, 세액공제, 세율 등에 대한 질문에 답하세요.`;
 }
 
 const server = serve({
@@ -208,7 +209,7 @@ const server = serve({
           const response = await client.messages.create({
             model: FAST_MODEL,
             max_tokens: 256,
-            system: `You are helping a user explore their own tax return data. Generate 3 short follow-up questions the user might want to ask about their finances. Phrase questions in FIRST PERSON (e.g., "Why did my income drop?" not "Why did your income drop?").`,
+            system: `사용자가 자신의 연말정산 데이터를 탐색하도록 도와주세요. 사용자가 자신의 재정에 대해 물어볼 수 있는 짧은 후속 질문 3개를 생성하세요. 1인칭으로 작성하세요 (예: "내 소득이 왜 줄었지?" "내가 왜 작년보다 세금을 더 냈지?"). 반드시 한국어로 작성하세요.`,
             messages,
             output_config: {
               format: {
@@ -267,10 +268,10 @@ const server = serve({
             return Response.json({ error: "Invalid API key" }, { status: 401 });
           }
           if (message.includes("prompt is too long") || message.includes("too many tokens")) {
-            return Response.json({ error: "PDF is too large to process. Try uploading just the main tax forms." }, { status: 400 });
+            return Response.json({ error: "PDF 파일이 너무 큽니다. 주요 연말정산 서류만 업로드해 보세요." }, { status: 400 });
           }
           if (message.includes("JSON")) {
-            return Response.json({ error: "Failed to parse tax return data" }, { status: 422 });
+            return Response.json({ error: "연말정산 데이터 파싱에 실패했습니다" }, { status: 422 });
           }
           return Response.json({ error: message }, { status: 500 });
         }

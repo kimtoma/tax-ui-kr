@@ -2,45 +2,50 @@ import { describe, expect, test } from "bun:test";
 import { aggregateSummary } from "./summary";
 import type { TaxReturn } from "./schema";
 
-const makeReturn = (year: number, income: number, federalTax: number, stateTax: number): TaxReturn => ({
+const makeReturn = (
+  year: number,
+  totalSalary: number,
+  determinedTax: number,
+  localIncomeTax: number,
+): TaxReturn => ({
   year,
-  name: "Test User",
-  filingStatus: "single",
+  name: "홍길동",
+  householdStatus: "세대주",
   dependents: [],
   income: {
-    items: [{ label: "Wages", amount: income }],
-    total: income,
+    items: [{ label: "급여", amount: totalSalary }],
+    totalSalary,
   },
-  federal: {
-    agi: income,
-    deductions: [{ label: "Standard deduction", amount: -14600 }],
-    taxableIncome: income - 14600,
-    tax: federalTax,
-    credits: [],
-    payments: [{ label: "Withheld", amount: -(federalTax + 1000) }],
-    refundOrOwed: 1000,
+  employmentDeduction: Math.round(totalSalary * 0.2),
+  employmentIncome: Math.round(totalSalary * 0.8),
+  incomeDeductions: {
+    items: [
+      { label: "국민연금", amount: Math.round(totalSalary * 0.045) },
+      { label: "건강보험", amount: Math.round(totalSalary * 0.034) },
+    ],
+    total: Math.round(totalSalary * 0.079),
   },
-  states: [
-    {
-      name: "California",
-      agi: income,
-      deductions: [{ label: "Standard deduction", amount: -5000 }],
-      taxableIncome: income - 5000,
-      tax: stateTax,
-      adjustments: [],
-      payments: [{ label: "Withheld", amount: -stateTax }],
-      refundOrOwed: 0,
-    },
-  ],
-  summary: {
-    federalAmount: 1000,
-    stateAmounts: [{ state: "California", amount: 0 }],
-    netPosition: 1000,
+  taxBase: Math.round(totalSalary * 0.6),
+  calculatedTax: determinedTax + 500_000,
+  taxCredits: {
+    items: [{ label: "근로소득세액공제", amount: 500_000 }],
+    total: 500_000,
+  },
+  determinedTax,
+  localIncomeTax,
+  taxAlreadyPaid: {
+    incomeTax: determinedTax + 100_000,
+    localTax: localIncomeTax + 10_000,
+    total: determinedTax + localIncomeTax + 110_000,
+  },
+  settlement: {
+    incomeTax: -100_000,
+    localTax: -10_000,
+    total: -110_000,
   },
   rates: {
-    federal: { marginal: 22, effective: 14 },
-    state: { marginal: 9.3, effective: 5 },
-    combined: { marginal: 31.3, effective: 19 },
+    marginal: 15,
+    effective: 6,
   },
 });
 
@@ -50,89 +55,73 @@ describe("aggregateSummary", () => {
   });
 
   test("aggregates single year correctly", () => {
-    const returns = { 2024: makeReturn(2024, 100000, 14000, 5000) };
+    const returns = { 2024: makeReturn(2024, 73_000_000, 3_141_350, 314_135) };
     const result = aggregateSummary(returns);
 
     expect(result).not.toBeNull();
     expect(result!.years).toEqual([2024]);
     expect(result!.yearCount).toBe(1);
-    expect(result!.totalIncome).toBe(100000);
-    expect(result!.totalFederalTax).toBe(14000);
-    expect(result!.totalStateTax).toBe(5000);
-    expect(result!.totalTax).toBe(19000);
-    expect(result!.netIncome).toBe(81000);
+    expect(result!.totalIncome).toBe(73_000_000);
+    expect(result!.totalDeterminedTax).toBe(3_141_350);
+    expect(result!.totalLocalTax).toBe(314_135);
+    expect(result!.totalTax).toBe(3_455_485); // 3_141_350 + 314_135
+    expect(result!.netIncome).toBe(73_000_000 - 3_455_485);
   });
 
   test("aggregates multiple years correctly", () => {
     const returns = {
-      2023: makeReturn(2023, 90000, 12000, 4000),
-      2024: makeReturn(2024, 100000, 14000, 5000),
+      2023: makeReturn(2023, 66_000_000, 3_476_200, 347_620),
+      2024: makeReturn(2024, 73_000_000, 3_141_350, 314_135),
     };
     const result = aggregateSummary(returns);
 
     expect(result).not.toBeNull();
     expect(result!.years).toEqual([2023, 2024]);
     expect(result!.yearCount).toBe(2);
-    expect(result!.totalIncome).toBe(190000);
-    expect(result!.totalFederalTax).toBe(26000);
-    expect(result!.totalStateTax).toBe(9000);
-    expect(result!.totalTax).toBe(35000);
-    expect(result!.netIncome).toBe(155000);
-  });
-
-  test("calculates averages correctly", () => {
-    const returns = {
-      2023: makeReturn(2023, 80000, 10000, 4000),
-      2024: makeReturn(2024, 100000, 14000, 5000),
-    };
-    const result = aggregateSummary(returns);
-
-    expect(result).not.toBeNull();
-    expect(result!.avgAgi).toBe(90000); // (80000 + 100000) / 2
+    expect(result!.totalIncome).toBe(139_000_000);
+    expect(result!.totalDeterminedTax).toBe(6_617_550);
+    expect(result!.totalLocalTax).toBe(661_755);
   });
 
   test("aggregates income items by label", () => {
-    const return1 = makeReturn(2023, 90000, 12000, 4000);
+    const return1 = makeReturn(2023, 66_000_000, 3_476_200, 347_620);
     return1.income.items = [
-      { label: "Wages", amount: 85000 },
-      { label: "Interest", amount: 5000 },
+      { label: "급여", amount: 60_000_000 },
+      { label: "상여금", amount: 6_000_000 },
     ];
 
-    const return2 = makeReturn(2024, 100000, 14000, 5000);
+    const return2 = makeReturn(2024, 73_000_000, 3_141_350, 314_135);
     return2.income.items = [
-      { label: "Wages", amount: 95000 },
-      { label: "Interest", amount: 3000 },
-      { label: "Dividends", amount: 2000 },
+      { label: "급여", amount: 66_000_000 },
+      { label: "상여금", amount: 7_000_000 },
     ];
 
     const returns = { 2023: return1, 2024: return2 };
     const result = aggregateSummary(returns);
 
     expect(result).not.toBeNull();
-    const wages = result!.incomeItems.find((i) => i.label === "Wages");
-    const interest = result!.incomeItems.find((i) => i.label === "Interest");
-    const dividends = result!.incomeItems.find((i) => i.label === "Dividends");
+    const salary = result!.incomeItems.find((i) => i.label === "급여");
+    const bonus = result!.incomeItems.find((i) => i.label === "상여금");
 
-    expect(wages?.amount).toBe(180000);
-    expect(interest?.amount).toBe(8000);
-    expect(dividends?.amount).toBe(2000);
+    expect(salary?.amount).toBe(126_000_000);
+    expect(bonus?.amount).toBe(13_000_000);
   });
 
   test("calculates average hourly rate", () => {
-    const returns = { 2024: makeReturn(2024, 104000, 14000, 6000) };
+    const returns = { 2024: makeReturn(2024, 73_000_000, 3_141_350, 314_135) };
     const result = aggregateSummary(returns);
 
-    // Net income: 104000 - 20000 = 84000
-    // Hourly: 84000 / 2080 ≈ 40.38
+    // Net income: 73_000_000 - 3_455_485 = 69_544_515
+    // Hourly: 69_544_515 / 2080 ≈ 33,434.86
     expect(result).not.toBeNull();
-    expect(result!.avgHourlyRate).toBeCloseTo(40.38, 1);
+    expect(result!.avgHourlyRate).toBeCloseTo(33_434.86, 0);
   });
 
   test("sorts years ascending", () => {
     const returns = {
-      2024: makeReturn(2024, 100000, 14000, 5000),
-      2022: makeReturn(2022, 80000, 10000, 4000),
-      2023: makeReturn(2023, 90000, 12000, 4500),
+      2024: makeReturn(2024, 73_000_000, 3_141_350, 314_135),
+      2022: makeReturn(2022, 59_000_000, 3_266_050, 326_605),
+      2023: makeReturn(2023, 66_000_000, 3_476_200, 347_620),
     };
     const result = aggregateSummary(returns);
 
@@ -140,7 +129,7 @@ describe("aggregateSummary", () => {
   });
 
   test("handles returns without rates", () => {
-    const returnWithoutRates = makeReturn(2024, 100000, 14000, 5000);
+    const returnWithoutRates = makeReturn(2024, 73_000_000, 3_141_350, 314_135);
     delete (returnWithoutRates as Partial<TaxReturn>).rates;
 
     const returns = { 2024: returnWithoutRates };
@@ -151,25 +140,17 @@ describe("aggregateSummary", () => {
   });
 
   test("averages rates across years", () => {
-    const return1 = makeReturn(2023, 90000, 12000, 4000);
-    return1.rates = {
-      federal: { marginal: 22, effective: 13 },
-      state: { marginal: 9.3, effective: 4.4 },
-      combined: { marginal: 31.3, effective: 17.4 },
-    };
+    const return1 = makeReturn(2023, 66_000_000, 3_476_200, 347_620);
+    return1.rates = { marginal: 15, effective: 5.8 };
 
-    const return2 = makeReturn(2024, 100000, 14000, 5000);
-    return2.rates = {
-      federal: { marginal: 22, effective: 14 },
-      state: { marginal: 9.3, effective: 5 },
-      combined: { marginal: 31.3, effective: 19 },
-    };
+    const return2 = makeReturn(2024, 73_000_000, 3_141_350, 314_135);
+    return2.rates = { marginal: 15, effective: 4.7 };
 
     const returns = { 2023: return1, 2024: return2 };
     const result = aggregateSummary(returns);
 
     expect(result).not.toBeNull();
-    expect(result!.rates!.federal.effective).toBe(13.5); // (13 + 14) / 2
-    expect(result!.rates!.combined!.effective).toBe(18.2); // (17.4 + 19) / 2
+    expect(result!.rates!.marginal).toBe(15); // (15 + 15) / 2
+    expect(result!.rates!.effective).toBe(5.25); // (5.8 + 4.7) / 2
   });
 });
