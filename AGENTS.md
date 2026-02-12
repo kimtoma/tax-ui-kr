@@ -15,6 +15,16 @@ bun run dev      # localhost:3000에서 개발 서버 시작
 
 ## 핵심 개념
 
+### 인증 흐름
+
+`storage.ts`의 `createAnthropicClient(overrideApiKey?)`로 통합 관리:
+
+1. **폼 API 키** — 사용자가 직접 입력한 일회성 키 (최우선)
+2. **저장된 API 키** — `.env`에 저장된 `ANTHROPIC_API_KEY`
+3. **Claude Code OAuth** — macOS Keychain에서 자동 읽기 (`claude-code-auth.ts`)
+
+`getAuthStatus()`는 `{ hasKey, authMethod: "api_key" | "oauth" | "none" }`을 반환하며, `/api/config`에서 프론트엔드로 전달됩니다.
+
 ### 연말정산 데이터 흐름
 
 1. 사용자가 연말정산 PDF 업로드
@@ -120,4 +130,6 @@ bun test src/lib/format     # 특정 파일 테스트
 - 한국 세금 체계는 federal/state 구분이 없음 (단일 소득세 + 지방소득세 10%)
 - `income.total` 대신 `income.totalSalary` 사용 (총급여)
 - 파싱 모델: Sonnet 4.5 (메인), Haiku 4.5 (분류/연도 추출)
+- `parser.ts`의 공개 함수는 `Anthropic` 클라이언트 인스턴스를 받음 (apiKey 문자열이 아님)
+- Claude Code OAuth는 macOS 전용 (`process.platform === "darwin"`)
 - 데모 데이터는 `src/data/sampleData.ts`에 홍길동 4년치 (2021~2024)

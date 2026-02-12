@@ -234,17 +234,15 @@ async function smartExtract(
 
 export async function parseTaxReturn(
   pdfBase64: string,
-  apiKey: string
+  client: Anthropic
 ): Promise<TaxReturn> {
-  const client = new Anthropic({ apiKey });
   return smartExtract(pdfBase64, client);
 }
 
 export async function extractYearFromPdf(
   pdfBase64: string,
-  apiKey: string
+  client: Anthropic
 ): Promise<number | null> {
-  const client = new Anthropic({ apiKey });
 
   // Extract just the first page for fast year detection
   const pdfBytes = Buffer.from(pdfBase64, "base64");

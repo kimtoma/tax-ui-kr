@@ -7,6 +7,8 @@ import { FAQSection } from "./FAQSection";
 import { FileUploadPreview, type DisplayFile } from "./FileUploadPreview";
 import type { FileProgress, FileWithId } from "../lib/schema";
 
+type AuthMethod = "api_key" | "oauth" | "none";
+
 interface Props {
   isOpen: boolean;
   onUpload: (files: FileWithId[], apiKey: string) => Promise<void>;
@@ -14,6 +16,7 @@ interface Props {
   isProcessing?: boolean;
   fileProgress?: FileProgress[];
   hasStoredKey?: boolean;
+  authMethod?: AuthMethod;
   existingYears?: number[];
   skipOpenAnimation?: boolean;
 }
@@ -33,6 +36,7 @@ export function SetupDialog({
   isProcessing,
   fileProgress,
   hasStoredKey,
+  authMethod,
   existingYears = [],
   skipOpenAnimation,
 }: Props) {
@@ -84,7 +88,7 @@ export function SetupDialog({
 
   async function addFiles(newFiles: File[]) {
     const key = hasStoredKey ? "" : apiKey.trim();
-    const canExtract = !!key || !!hasStoredKey;
+    const canExtract = !!key || !!hasStoredKey || authMethod === "oauth";
 
     const newFileEntries: FileWithYear[] = newFiles.map((file) => ({
       id: crypto.randomUUID(),
@@ -180,7 +184,7 @@ export function SetupDialog({
   }
 
   async function handleSubmit() {
-    if (!hasStoredKey && !apiKey.trim()) {
+    if (!hasStoredKey && authMethod !== "oauth" && !apiKey.trim()) {
       setError("API 키를 입력해주세요");
       return;
     }
@@ -242,11 +246,12 @@ export function SetupDialog({
     return "처리";
   }
 
+  const hasAuth = hasStoredKey || authMethod === "oauth" || apiKey.trim();
   const isSubmitDisabled =
     isLoading ||
     isProcessing ||
     isExtracting ||
-    (!hasStoredKey && !apiKey.trim()) ||
+    !hasAuth ||
     files.length === 0;
 
   const isInteractionDisabled = isLoading || isProcessing;
@@ -274,7 +279,12 @@ export function SetupDialog({
           <label className="block text-sm font-medium mb-2">
             Anthropic API 키
           </label>
-          {hasStoredKey ? (
+          {authMethod === "oauth" ? (
+            <div className="w-full px-3 py-2.5 border border-(--color-border) bg-(--color-bg-muted) rounded-lg text-sm text-(--color-text-muted) flex items-center gap-2">
+              <span className="inline-block w-2 h-2 rounded-full bg-green-500 shrink-0"></span>
+              Claude Code 연결됨
+            </div>
+          ) : hasStoredKey ? (
             <div className="w-full px-3 py-2.5 border border-(--color-border) bg-(--color-bg-muted) rounded-lg text-sm text-(--color-text-muted)">
               sk-ant-•••••••••••••••
             </div>

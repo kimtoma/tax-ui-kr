@@ -3,10 +3,13 @@ import { Input } from "@base-ui/react/input";
 import { Dialog } from "./Dialog";
 import { Button } from "./Button";
 
+type AuthMethod = "api_key" | "oauth" | "none";
+
 interface Props {
   isOpen: boolean;
   onClose: () => void;
   hasApiKey: boolean;
+  authMethod?: AuthMethod;
   onSaveApiKey: (key: string) => Promise<void>;
   onClearData: () => Promise<void>;
 }
@@ -15,6 +18,7 @@ export function SettingsModal({
   isOpen,
   onClose,
   hasApiKey,
+  authMethod,
   onSaveApiKey,
   onClearData,
 }: Props) {
@@ -65,7 +69,27 @@ export function SettingsModal({
           <label className="block text-sm font-medium mb-2">
             Anthropic API 키
           </label>
-          {hasApiKey ? (
+          {authMethod === "oauth" ? (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm text-(--color-text-muted)">
+                <span className="inline-block w-2 h-2 rounded-full bg-green-500"></span>
+                Claude Code 연결됨
+              </div>
+              <p className="text-xs text-(--color-text-muted)">
+                Claude Code에서 인증 정보를 사용합니다.
+              </p>
+              <Input
+                type="password"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="API 키로 전환하려면 입력..."
+                autoComplete="off"
+                data-1p-ignore
+                data-lpignore="true"
+                className="w-full px-3 py-2 text-sm bg-(--color-bg-muted) border border-(--color-border) rounded-lg focus:outline-none focus:border-(--color-text-muted)"
+              />
+            </div>
+          ) : hasApiKey ? (
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm text-(--color-text-muted)">
                 <span className="inline-block w-2 h-2 rounded-full bg-green-500"></span>

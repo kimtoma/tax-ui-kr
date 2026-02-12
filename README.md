@@ -17,9 +17,12 @@ Tax UI KR은 [Bun](https://bun.sh) 런타임을 사용합니다.
 curl -fsSL https://bun.sh/install | bash
 ```
 
-### 2. Anthropic API 키 발급
+### 2. 인증 설정
 
-연말정산 PDF 파싱에 Claude를 사용합니다. [console.anthropic.com](https://console.anthropic.com/settings/keys)에서 API 키를 발급받으세요.
+연말정산 PDF 파싱에 Claude를 사용합니다. 다음 중 하나를 사용하세요:
+
+- **Claude Code 사용자**: 이미 Claude Code가 설치되어 있다면 추가 설정 없이 바로 사용 가능 (macOS Keychain의 OAuth 토큰 자동 감지)
+- **API 키**: [console.anthropic.com](https://console.anthropic.com/settings/keys)에서 API 키를 발급받아 앱에서 입력
 
 ### 3. 실행
 
@@ -74,7 +77,8 @@ src/
 │   ├── summary.ts            # 연도별 요약 집계
 │   ├── format.ts             # 원화 포맷 (만/억 단위)
 │   ├── time-units.ts         # 일급/시급/분급/초급 환산
-│   ├── storage.ts            # 로컬 파일 저장
+│   ├── storage.ts            # 로컬 파일 저장 & 인증 팩토리
+│   ├── claude-code-auth.ts   # Claude Code OAuth (macOS Keychain)
 │   └── cn.ts                 # className 유틸리티
 ├── components/
 │   ├── MainPanel.tsx          # 메인 레이아웃 (탭, 헤더)
@@ -118,6 +122,7 @@ src/
 - 연말정산 PDF는 파싱을 위해 Anthropic API로 전송됩니다
 - 파싱된 데이터는 로컬 기기에만 저장됩니다
 - API 키는 로컬 .env 파일에 저장되며 외부로 전송되지 않습니다
+- Claude Code OAuth 토큰 사용 시 macOS Keychain에서 읽으며, 토큰 갱신은 Anthropic OAuth 엔드포인트로만 요청됩니다
 
 Anthropic 상업 약관은 API 고객 데이터를 모델 학습에 사용하는 것을 금지합니다. [Anthropic 개인정보 보호정책](https://www.anthropic.com/legal/privacy) 참고.
 
@@ -167,5 +172,5 @@ Tax UI의 보안 및 개인정보 보호 감사를 수행해주세요.
 ## 요구 사항
 
 - [Bun](https://bun.sh) v1.0 이상
-- [Anthropic API 키](https://console.anthropic.com/settings/keys)
+- [Anthropic API 키](https://console.anthropic.com/settings/keys) 또는 [Claude Code](https://claude.com/claude-code) (macOS)
 - 연말정산 PDF 서류

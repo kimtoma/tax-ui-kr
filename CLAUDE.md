@@ -29,7 +29,8 @@
 - `src/lib/tax-calculations.ts` — 한국 소득세율표 (6%~45%, 8구간)
 - `src/lib/summary.ts` — 연도별 집계 (AggregatedSummary)
 - `src/lib/format.ts` — 원화 포맷 (만/억 단위)
-- `src/lib/storage.ts` — 로컬 파일 저장
+- `src/lib/storage.ts` — 로컬 파일 저장, 인증 팩토리 (`getAuthStatus`, `createAnthropicClient`)
+- `src/lib/claude-code-auth.ts` — Claude Code OAuth 토큰 (macOS Keychain)
 - `src/App.tsx` — React 프론트엔드 진입점
 
 ## 연말정산 도메인
@@ -79,6 +80,12 @@ const [openModal, setOpenModal] = useState<"settings" | "reset" | null>(null);
 - `formatCurrency(52000000)` → `"52,000,000원"`
 - `formatCompact(52000000)` → `"5200만"`
 - `formatCompact(250000000)` → `"2.5억"`
+
+### 인증
+인증 우선순위: 폼 API 키 > 저장된 API 키 (.env) > Claude Code OAuth (Keychain)
+- `createAnthropicClient(overrideApiKey?)` — 통합 클라이언트 팩토리
+- `getAuthStatus()` — `{ hasKey, authMethod: "api_key" | "oauth" | "none" }` 반환
+- OAuth 토큰은 macOS Keychain에서 자동 읽기 (30초 캐시, 만료 시 자동 갱신)
 
 ### 세율
 한국 소득세는 단일 체계 (federal/state 구분 없음):

@@ -1,4 +1,8 @@
+import Anthropic from "@anthropic-ai/sdk";
 import type { TaxReturn } from "./schema";
+import { getClaudeCodeOAuthToken, hasClaudeCodeOAuth, invalidateOAuthCache } from "./claude-code-auth";
+
+export type AuthMethod = "api_key" | "oauth" | "none";
 
 const RETURNS_FILE = ".tax-returns.json";
 const ENV_FILE = ".env";
@@ -83,3 +87,41 @@ export async function clearAllData(): Promise<void> {
   }
   delete process.env.ANTHROPIC_API_KEY;
 }
+
+/**
+ * Determine current auth method and status.
+ * Priority: API key > OAuth token > none
+ */
+export async function getAuthStatus(): Promise<{ hasKey: boolean; authMethod: AuthMethod }> {
+  if (getApiKey()) {
+    return { hasKey: true, authMethod: "api_key" };
+  }
+  if (await hasClaudeCodeOAuth()) {
+    return { hasKey: true, authMethod: "oauth" };
+  }
+  return { hasKey: false, authMethod: "none" };
+}
+
+/**
+ * Create an Anthropic client using the best available auth method.
+ * Priority: overrideApiKey > stored API key > OAuth token
+ */
+export async function createAnthropicClient(overrideApiKey?: string): Promise<Anthropic> {
+  if (overrideApiKey) {
+    return new Anthropic({ apiKey: overrideApiKey });
+  }
+
+  const storedKey = getApiKey();
+  if (storedKey) {
+    return new Anthropic({ apiKey: storedKey });
+  }
+
+  const oauthToken = await getClaudeCodeOAuthToken();
+  if (oauthToken) {
+    return new Anthropic({ authToken: oauthToken });
+  }
+
+  throw new Error("No API key configured");
+}
+
+export { invalidateOAuthCache } from "./claude-code-auth";

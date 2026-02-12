@@ -55,9 +55,12 @@ function saveChatMessages(messages: ChatMessage[]) {
 
 type SelectedView = "summary" | number | `pending:${string}`;
 
+type AuthMethod = "api_key" | "oauth" | "none";
+
 interface AppState {
   returns: Record<number, TaxReturn>;
   hasStoredKey: boolean;
+  authMethod: AuthMethod;
   selectedYear: SelectedView;
   isLoading: boolean;
   hasUserData: boolean;
@@ -68,13 +71,14 @@ interface AppState {
 async function fetchInitialState(): Promise<
   Pick<
     AppState,
-    "returns" | "hasStoredKey" | "hasUserData" | "isDemo" | "isDev"
+    "returns" | "hasStoredKey" | "authMethod" | "hasUserData" | "isDemo" | "isDev"
   >
 > {
   // In production (static hosting), skip API calls and use sample data
   if (isClientDemo()) {
     return {
       hasStoredKey: false,
+      authMethod: "none",
       returns: {},
       hasUserData: false,
       isDemo: true,
@@ -86,11 +90,12 @@ async function fetchInitialState(): Promise<
     fetch("/api/config"),
     fetch("/api/returns"),
   ]);
-  const { hasKey, isDemo, isDev } = await configRes.json();
+  const { hasKey, authMethod, isDemo, isDev } = await configRes.json();
   const returns = await returnsRes.json();
   const hasUserData = Object.keys(returns).length > 0;
   return {
     hasStoredKey: hasKey,
+    authMethod: authMethod ?? "none",
     returns,
     hasUserData,
     isDemo: isDemo ?? false,
@@ -127,6 +132,7 @@ export function App() {
   const [state, setState] = useState<AppState>({
     returns: sampleReturns,
     hasStoredKey: false,
+    authMethod: "none",
     selectedYear: "summary",
     isLoading: true,
     hasUserData: false,
@@ -189,12 +195,13 @@ export function App() {
 
   useEffect(() => {
     fetchInitialState()
-      .then(({ returns, hasStoredKey, hasUserData, isDemo, isDev }) => {
+      .then(({ returns, hasStoredKey, authMethod, hasUserData, isDemo, isDev }) => {
         // Use user data if available, otherwise show sample data
         const effectiveReturns = hasUserData ? returns : sampleReturns;
         setState({
           returns: effectiveReturns,
           hasStoredKey,
+          authMethod,
           selectedYear: getDefaultSelection(effectiveReturns),
           isLoading: false,
           hasUserData,
@@ -424,7 +431,7 @@ export function App() {
       const { error } = await res.json();
       throw new Error(error || `HTTP ${res.status}`);
     }
-    setState((s) => ({ ...s, hasStoredKey: true }));
+    setState((s) => ({ ...s, hasStoredKey: true, authMethod: "api_key" }));
   }
 
   async function handleClearData() {
@@ -434,9 +441,13 @@ export function App() {
       throw new Error(error || `HTTP ${res.status}`);
     }
     // Reset to initial state with sample data
+    // Re-fetch auth status since OAuth might still be available after clearing API key
+    const configRes = await fetch("/api/config");
+    const { hasKey: newHasKey, authMethod: newAuthMethod } = await configRes.json();
     setState((s) => ({
       returns: sampleReturns,
-      hasStoredKey: false,
+      hasStoredKey: newHasKey,
+      authMethod: newAuthMethod ?? "none",
       selectedYear: "summary",
       isLoading: false,
       hasUserData: false,
@@ -819,7 +830,8 @@ export function App() {
           isProcessing={isOnboardingProcessing}
           fileProgress={onboardingProgress}
           hasStoredKey={state.hasStoredKey}
-          existingYears={Object.keys(state.returns).map(Number)}
+          authMethod={state.authMethod}
+          existingYears={state.hasUserData ? Object.keys(state.returns).map(Number) : []}
           skipOpenAnimation={skipOnboardingAnimation}
         />
       )}
@@ -842,6 +854,7 @@ export function App() {
         isOpen={openModal === "settings"}
         onClose={() => setOpenModal(null)}
         hasApiKey={state.hasStoredKey}
+        authMethod={state.authMethod}
         onSaveApiKey={handleSaveApiKey}
         onClearData={handleClearData}
       />

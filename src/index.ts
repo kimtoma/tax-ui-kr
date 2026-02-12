@@ -1,6 +1,6 @@
 import { serve, argv } from "bun";
 import Anthropic from "@anthropic-ai/sdk";
-import { getReturns, saveReturn, deleteReturn, getApiKey, saveApiKey, removeApiKey, clearAllData } from "./lib/storage";
+import { getReturns, saveReturn, deleteReturn, getApiKey, saveApiKey, removeApiKey, clearAllData, getAuthStatus, createAnthropicClient, invalidateOAuthCache } from "./lib/storage";
 import { parseTaxReturn, extractYearFromPdf } from "./lib/parser";
 import index from "./index.html";
 
@@ -45,11 +45,11 @@ const server = serve({
   port,
   routes: {
     "/api/config": {
-      GET: () => {
-        const hasKey = Boolean(getApiKey());
+      GET: async () => {
+        const { hasKey, authMethod } = await getAuthStatus();
         const isDemo = process.env.DEMO_MODE === "true";
         const isDev = process.env.NODE_ENV !== "production";
-        return Response.json({ hasKey, isDemo, isDev });
+        return Response.json({ hasKey, authMethod, isDemo, isDev });
       },
     },
     "/api/config/key": {
@@ -109,22 +109,30 @@ const server = serve({
           return Response.json({ error: "No PDF file provided" }, { status: 400 });
         }
 
-        const formApiKey = formData.get("apiKey") as string | null;
-        const apiKey = formApiKey || getApiKey();
-        if (!apiKey) {
+        const formApiKey = (formData.get("apiKey") as string | null)?.trim() || undefined;
+
+        let client: Anthropic;
+        try {
+          client = await createAnthropicClient(formApiKey);
+        } catch {
           return Response.json({ error: "No API key configured" }, { status: 400 });
         }
 
         try {
           const buffer = await file.arrayBuffer();
           const base64 = Buffer.from(buffer).toString("base64");
-          const year = await extractYearFromPdf(base64, apiKey);
+          const year = await extractYearFromPdf(base64, client);
           return Response.json({ year });
         } catch (error) {
           console.error("Year extraction error:", error);
           const message = error instanceof Error ? error.message : "";
           if (isAuthError(message)) {
-            await removeApiKey();
+            const { authMethod } = await getAuthStatus();
+            if (authMethod === "oauth") {
+              invalidateOAuthCache();
+            } else {
+              await removeApiKey();
+            }
             return Response.json({ error: "Invalid API key" }, { status: 401 });
           }
           return Response.json({ year: null });
@@ -139,8 +147,10 @@ const server = serve({
           return Response.json({ error: "No prompt provided" }, { status: 400 });
         }
 
-        const apiKey = getApiKey();
-        if (!apiKey) {
+        let client: Anthropic;
+        try {
+          client = await createAnthropicClient();
+        } catch {
           return Response.json({ error: "No API key configured" }, { status: 400 });
         }
 
@@ -148,7 +158,6 @@ const server = serve({
         const returns = clientReturns && Object.keys(clientReturns).length > 0
           ? clientReturns
           : await getReturns();
-        const client = new Anthropic({ apiKey });
 
         try {
           // Build messages from history
@@ -176,7 +185,12 @@ const server = serve({
           console.error("Chat error:", error);
           const message = error instanceof Error ? error.message : "Unknown error";
           if (isAuthError(message)) {
-            await removeApiKey();
+            const { authMethod } = await getAuthStatus();
+            if (authMethod === "oauth") {
+              invalidateOAuthCache();
+            } else {
+              await removeApiKey();
+            }
             return Response.json({ error: "Invalid API key" }, { status: 401 });
           }
           return Response.json({ error: message }, { status: 500 });
@@ -187,16 +201,16 @@ const server = serve({
       POST: async (req) => {
         const { history, returns: clientReturns } = await req.json();
 
-        const apiKey = getApiKey();
-        if (!apiKey) {
+        let client: Anthropic;
+        try {
+          client = await createAnthropicClient();
+        } catch {
           return Response.json({ suggestions: [] });
         }
 
         const returns = clientReturns && Object.keys(clientReturns).length > 0
           ? clientReturns
           : await getReturns();
-
-        const client = new Anthropic({ apiKey });
 
         try {
           const messages: Anthropic.MessageParam[] = history.map((msg: { role: string; content: string }) => ({
@@ -236,25 +250,27 @@ const server = serve({
       POST: async (req) => {
         const formData = await req.formData();
         const file = formData.get("pdf") as File | null;
-        const apiKeyFromForm = formData.get("apiKey") as string | null;
+        const apiKeyFromForm = (formData.get("apiKey") as string | null)?.trim() || undefined;
 
         if (!file) {
           return Response.json({ error: "No PDF file provided" }, { status: 400 });
         }
 
-        const apiKey = apiKeyFromForm?.trim() || getApiKey();
-        if (!apiKey) {
+        let client: Anthropic;
+        try {
+          client = await createAnthropicClient(apiKeyFromForm);
+        } catch {
           return Response.json({ error: "No API key provided" }, { status: 400 });
         }
 
         try {
           const buffer = await file.arrayBuffer();
           const base64 = Buffer.from(buffer).toString("base64");
-          const taxReturn = await parseTaxReturn(base64, apiKey);
+          const taxReturn = await parseTaxReturn(base64, client);
 
           // Save key only after successful parse
-          if (apiKeyFromForm?.trim()) {
-            await saveApiKey(apiKeyFromForm.trim());
+          if (apiKeyFromForm) {
+            await saveApiKey(apiKeyFromForm);
           }
 
           await saveReturn(taxReturn);
@@ -264,7 +280,12 @@ const server = serve({
           const message = error instanceof Error ? error.message : "Unknown error";
 
           if (isAuthError(message)) {
-            await removeApiKey();
+            const { authMethod } = await getAuthStatus();
+            if (authMethod === "oauth") {
+              invalidateOAuthCache();
+            } else {
+              await removeApiKey();
+            }
             return Response.json({ error: "Invalid API key" }, { status: 401 });
           }
           if (message.includes("prompt is too long") || message.includes("too many tokens")) {
@@ -286,3 +307,13 @@ const server = serve({
 });
 
 console.log(`Server running at ${server.url}`);
+
+// Log auth status on startup
+getAuthStatus().then(({ authMethod }) => {
+  const labels: Record<string, string> = {
+    api_key: "API 키 설정됨",
+    oauth: "Claude Code OAuth 토큰 감지됨",
+    none: "인증 미설정",
+  };
+  console.log(`Auth: ${labels[authMethod]}`);
+});
