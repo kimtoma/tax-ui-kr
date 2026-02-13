@@ -40,5 +40,8 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 # Claude Code local settings
 .claude/
 
+# Exported conversations
+2026-*.txt
+
 # Editor
 .cursor/
